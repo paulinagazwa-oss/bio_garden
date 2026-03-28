@@ -1,5 +1,6 @@
 package com.github.paulinagazwa.oss.bio.garden.entity;
 
+import com.github.paulinagazwa.oss.bio.garden.model.CropType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
