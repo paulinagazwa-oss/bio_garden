@@ -1,5 +1,6 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
+import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
@@ -9,6 +10,7 @@ import com.github.paulinagazwa.oss.bio.garden.service.PlantService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -38,21 +40,17 @@ public class PlantServiceImpl implements PlantService {
 	@Override
 	public Plant createPlant(PlantCreateRequest plantCreateRequest) {
 
-		return plantMapper.toModel(
-				plantRepository.save(
-						plantMapper.fromCreateRequest(plantCreateRequest)
-				)
-		);
+		PlantEntity entity = plantMapper.fromCreateRequest(plantCreateRequest);
+		entity.setCreationDate(LocalDateTime.now());
+		return plantMapper.toModel(plantRepository.save(entity));
 	}
 
 	@Override
 	public Plant updatePlant(PlantUpdateRequest plant) {
 
-		return plantMapper.toModel(
-				plantRepository.save(
-						plantMapper.fromUpdateRequest(plant)
-				)
-		);
+		PlantEntity entity = plantMapper.fromUpdateRequest(plant);
+		entity.setLastUpdateDate(LocalDateTime.now());
+		return plantMapper.toModel(plantRepository.save(entity));
 	}
 
 	@Override
