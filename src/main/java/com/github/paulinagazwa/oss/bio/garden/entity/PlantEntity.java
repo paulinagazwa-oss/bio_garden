@@ -19,7 +19,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Plant {
+public class PlantEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
