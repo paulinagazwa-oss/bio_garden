@@ -13,13 +13,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "plant", schema = "bio_garden")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Plant {
+public class PlantEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,5 +32,14 @@ public class Plant {
 	@Enumerated(EnumType.ORDINAL)
 	private CropType crop;
 
+	private Integer daysToHarvest;
+
+	private LocalDateTime creationDate;
+
+	private LocalDateTime lastUpdateDate;
+
+	private LocalDateTime sowFrom;
+
+	private LocalDateTime sowTo;
 }
 

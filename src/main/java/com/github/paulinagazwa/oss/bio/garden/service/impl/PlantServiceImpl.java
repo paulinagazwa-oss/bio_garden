@@ -1,45 +1,64 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
+import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
+import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantService;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@AllArgsConstructor
 public class PlantServiceImpl implements PlantService {
 
-	private PlantRepository plantRepository;
+	private final PlantRepository plantRepository;
+
+	private final PlantMapper plantMapper;
 
 	@Override
 	public List<Plant> findAllPlants() {
 
-		return null;
+		return plantRepository.findAll().stream()
+				.map(plantMapper::toModel)
+				.toList();
 	}
 
 	@Override
 	public Plant findPlantById(Long id) {
 
-		return null;
+		return plantRepository.findById(id)
+				.map(plantMapper::toModel)
+				.orElse(null);
 	}
 
 	@Override
 	public Plant createPlant(PlantCreateRequest plantCreateRequest) {
 
-		return null;
+		PlantEntity entity = plantMapper.fromCreateRequest(plantCreateRequest);
+		entity.setCreationDate(LocalDateTime.now());
+		return plantMapper.toModel(plantRepository.save(entity));
 	}
 
 	@Override
 	public Plant updatePlant(PlantUpdateRequest plant) {
 
-		return null;
+		PlantEntity entity = plantMapper.fromUpdateRequest(plant);
+		entity.setLastUpdateDate(LocalDateTime.now());
+		return plantMapper.toModel(plantRepository.save(entity));
 	}
 
 	@Override
 	public void deletePlant(Long id) {
 
+		plantRepository.delete(
+				plantRepository.findById(id)
+						.orElseThrow(() -> new RuntimeException("Plant not found with id: " + id))
+		);
 	}
 }
