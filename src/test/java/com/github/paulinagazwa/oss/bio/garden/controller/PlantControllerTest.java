@@ -17,6 +17,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -78,12 +80,12 @@ class PlantControllerTest {
 	void shouldUpdatePlant() {
 
 		PlantUpdateRequest request = new PlantUpdateRequest();
-		when(plantService.updatePlant(request)).thenReturn(plant);
+		when(plantService.updatePlant(any(), eq(request))).thenReturn(plant);
 
-		Plant result = plantController.updatePlant(request);
+		Plant result = plantController.updatePlant(1L, request);
 
 		assertEquals(plant, result);
-		verify(plantService).updatePlant(request);
+		verify(plantService).updatePlant(1L, request);
 	}
 
 	@Test
@@ -109,12 +111,12 @@ class PlantControllerTest {
 	void shouldReturnNullWhenUpdateReturnsNull() {
 
 		PlantUpdateRequest request = new PlantUpdateRequest();
-		when(plantService.updatePlant(request)).thenReturn(null);
+		when(plantService.updatePlant(any(), eq(request))).thenReturn(null);
 
-		Plant result = plantController.updatePlant(request);
+		Plant result = plantController.updatePlant(1L, request);
 
 		assertNull(result);
-		verify(plantService).updatePlant(request);
+		verify(plantService).updatePlant(1L, request);
 	}
 
 	@Test

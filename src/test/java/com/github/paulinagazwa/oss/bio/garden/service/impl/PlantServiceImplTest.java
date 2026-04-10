@@ -19,6 +19,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -126,11 +128,12 @@ class PlantServiceImplTest {
 		PlantEntity entity = new PlantEntity();
 		Plant plant = new Plant();
 
-		when(plantMapper.fromUpdateRequest(request)).thenReturn(entity);
+		when(plantRepository.findById(1L)).thenReturn(Optional.of(entity));
+		doNothing().when(plantMapper).updateEntityFromRequest(eq(request), any(PlantEntity.class));
 		when(plantRepository.save(entity)).thenReturn(entity);
 		when(plantMapper.toModel(entity)).thenReturn(plant);
 
-		Plant result = plantService.updatePlant(request);
+		Plant result = plantService.updatePlant(1L, request);
 
 		assertThat(result).isEqualTo(plant);
 		assertThat(entity.getLastUpdateDate()).isNotNull();
@@ -142,11 +145,12 @@ class PlantServiceImplTest {
 		PlantUpdateRequest request = new PlantUpdateRequest();
 		PlantEntity entity = new PlantEntity();
 
-		when(plantMapper.fromUpdateRequest(request)).thenReturn(entity);
+		when(plantRepository.findById(1L)).thenReturn(Optional.of(entity));
+		doNothing().when(plantMapper).updateEntityFromRequest(eq(request), any(PlantEntity.class));
 		when(plantRepository.save(any())).thenReturn(entity);
 		when(plantMapper.toModel(entity)).thenReturn(new Plant());
 
-		plantService.updatePlant(request);
+		plantService.updatePlant(1L, request);
 
 		ArgumentCaptor<PlantEntity> captor = ArgumentCaptor.forClass(PlantEntity.class);
 		verify(plantRepository).save(captor.capture());

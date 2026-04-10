@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -34,15 +35,15 @@ public class PlantController {
 	}
 
 	@PostMapping("/api/v1/plants")
-	public Plant createPlant(@Valid PlantCreateRequest plantCreateRequest) {
+	public Plant createPlant(@Valid @RequestBody PlantCreateRequest plantCreateRequest) {
 
 		return plantService.createPlant(plantCreateRequest);
 	}
 
 	@PutMapping("/api/v1/plants/{id}")
-	public Plant updatePlant(@Valid PlantUpdateRequest plantUpdateRequest) {
+	public Plant updatePlant(@PathVariable Long id, @Valid @RequestBody PlantUpdateRequest plantUpdateRequest) {
 
-		return plantService.updatePlant(plantUpdateRequest);
+		return plantService.updatePlant(id, plantUpdateRequest);
 	}
 
 	@DeleteMapping("/api/v1/plants/{id}")

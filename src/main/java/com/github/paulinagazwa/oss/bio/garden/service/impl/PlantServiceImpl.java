@@ -46,11 +46,15 @@ public class PlantServiceImpl implements PlantService {
 	}
 
 	@Override
-	public Plant updatePlant(PlantUpdateRequest plant) {
+	public Plant updatePlant(Long id, PlantUpdateRequest plant) {
 
-		PlantEntity entity = plantMapper.fromUpdateRequest(plant);
-		entity.setLastUpdateDate(LocalDateTime.now());
-		return plantMapper.toModel(plantRepository.save(entity));
+		PlantEntity existing = plantRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Plant not found with id: " + id));
+
+		plantMapper.updateEntityFromRequest(plant, existing);
+		existing.setLastUpdateDate(LocalDateTime.now());
+
+		return plantMapper.toModel(plantRepository.save(existing));
 	}
 
 	@Override
