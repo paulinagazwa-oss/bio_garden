@@ -36,3 +36,21 @@ keytool -genkeypair -alias garden -keyalg RSA -keysize 2048 \
 Replace `your_password` with a secure password of your choice. This command will create a keystore file named `keystore.p12` in the `src/main/resources` directory, which the application will use for SSL configuration.
 
 Password for keystore can be set in environment variable `SSL_KEY_PASSWORD` or directly in `application.properties` file (not recommended for production).
+
+## Build
+
+### JAR (default – embedded Tomcat, run locally)
+
+```bash
+mvn clean package
+java -jar target/bio-garden-${project.version}.jar
+```
+
+### WAR (deploy to external Tomcat)
+
+```bash
+mvn clean package -P server
+```
+
+Place the target/garden-${project.version}.war file in the deployments/ directory of your OpenShift image (e.g. jboss-eap or
+tomcat).

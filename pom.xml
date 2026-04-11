@@ -11,9 +11,10 @@
 	<groupId>com.github.paulinagazwa.oss.bio</groupId>
 	<artifactId>garden</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>jar</packaging>
+	<packaging>${packaging.type}</packaging>
 	<properties>
 		<java.version>17</java.version>
+		<packaging.type>jar</packaging.type>
 		<swagger-annotations-jakarta.version>2.2.23</swagger-annotations-jakarta.version>
 		<jackson-databind-nullable.version>0.2.6</jackson-databind-nullable.version>
 		<openapi-generator-maven-plugin.version>7.12.0</openapi-generator-maven-plugin.version>
@@ -147,5 +148,33 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Default profile -->
+		<profile>
+			<id>jar</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<packaging.type>jar</packaging.type>
+			</properties>
+		</profile>
+
+		<!-- WAR to use an OpenShift / Tomcat -->
+		<profile>
+			<id>server</id>
+			<properties>
+				<packaging.type>war</packaging.type>
+			</properties>
+			<dependencies>
+				<dependency>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-tomcat</artifactId>
+					<scope>provided</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
 
 </project>

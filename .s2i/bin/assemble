@@ -1,0 +1,3 @@
+#!/bin/bash
+mvn clean package -P server -DskipTests
+cp target/*.war /deployments/
