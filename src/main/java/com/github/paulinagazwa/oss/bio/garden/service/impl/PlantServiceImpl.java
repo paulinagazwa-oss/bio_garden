@@ -1,6 +1,7 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
+import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
@@ -46,11 +47,15 @@ public class PlantServiceImpl implements PlantService {
 	}
 
 	@Override
-	public Plant updatePlant(PlantUpdateRequest plant) {
+	public Plant updatePlant(Long id, PlantUpdateRequest plant) {
 
-		PlantEntity entity = plantMapper.fromUpdateRequest(plant);
-		entity.setLastUpdateDate(LocalDateTime.now());
-		return plantMapper.toModel(plantRepository.save(entity));
+		PlantEntity existing = plantRepository.findById(id)
+				.orElseThrow(() -> new PlantNotFoundException(id));
+
+		plantMapper.updateEntityFromRequest(plant, existing);
+		existing.setLastUpdateDate(LocalDateTime.now());
+
+		return plantMapper.toModel(plantRepository.save(existing));
 	}
 
 	@Override
@@ -58,7 +63,7 @@ public class PlantServiceImpl implements PlantService {
 
 		plantRepository.delete(
 				plantRepository.findById(id)
-						.orElseThrow(() -> new RuntimeException("Plant not found with id: " + id))
+						.orElseThrow(() -> new PlantNotFoundException(id))
 		);
 	}
 }

@@ -6,6 +6,7 @@ import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
 import java.time.LocalDateTime;
@@ -49,7 +50,7 @@ public interface PlantMapper {
 	@Mapping(target = LAST_UPDATE_DATE, ignore = true)
 	@Mapping(target = SOW_FROM, source = PERIOD_SOW_FROM)
 	@Mapping(target = SOW_TO, source = PERIOD_SOW_TO)
-	PlantEntity fromUpdateRequest(PlantUpdateRequest plantUpdateRequest);
+	void updateEntityFromRequest(PlantUpdateRequest request, @MappingTarget PlantEntity entity);
 
 	default OffsetDateTime map(LocalDateTime value) {
 

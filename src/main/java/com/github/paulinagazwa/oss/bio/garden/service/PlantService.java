@@ -14,7 +14,7 @@ public interface PlantService {
 
 	Plant createPlant(PlantCreateRequest plantCreateRequest);
 
-	Plant updatePlant(PlantUpdateRequest plantUpdateRequest);
+	Plant updatePlant(Long id, PlantUpdateRequest plantUpdateRequest);
 
 	void deletePlant(Long id);
 }

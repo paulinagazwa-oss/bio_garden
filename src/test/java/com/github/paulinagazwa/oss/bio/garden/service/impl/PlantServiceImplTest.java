@@ -1,6 +1,7 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
+import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
@@ -19,6 +20,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -126,11 +129,12 @@ class PlantServiceImplTest {
 		PlantEntity entity = new PlantEntity();
 		Plant plant = new Plant();
 
-		when(plantMapper.fromUpdateRequest(request)).thenReturn(entity);
+		when(plantRepository.findById(1L)).thenReturn(Optional.of(entity));
+		doNothing().when(plantMapper).updateEntityFromRequest(eq(request), any(PlantEntity.class));
 		when(plantRepository.save(entity)).thenReturn(entity);
 		when(plantMapper.toModel(entity)).thenReturn(plant);
 
-		Plant result = plantService.updatePlant(request);
+		Plant result = plantService.updatePlant(1L, request);
 
 		assertThat(result).isEqualTo(plant);
 		assertThat(entity.getLastUpdateDate()).isNotNull();
@@ -142,15 +146,26 @@ class PlantServiceImplTest {
 		PlantUpdateRequest request = new PlantUpdateRequest();
 		PlantEntity entity = new PlantEntity();
 
-		when(plantMapper.fromUpdateRequest(request)).thenReturn(entity);
+		when(plantRepository.findById(1L)).thenReturn(Optional.of(entity));
+		doNothing().when(plantMapper).updateEntityFromRequest(eq(request), any(PlantEntity.class));
 		when(plantRepository.save(any())).thenReturn(entity);
 		when(plantMapper.toModel(entity)).thenReturn(new Plant());
 
-		plantService.updatePlant(request);
+		plantService.updatePlant(1L, request);
 
 		ArgumentCaptor<PlantEntity> captor = ArgumentCaptor.forClass(PlantEntity.class);
 		verify(plantRepository).save(captor.capture());
 		assertThat(captor.getValue().getLastUpdateDate()).isNotNull();
+	}
+
+	@Test
+	void updatePlant_throwsException_whenNotFound() {
+
+		when(plantRepository.findById(99L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> plantService.updatePlant(99L, new PlantUpdateRequest()))
+				.isInstanceOf(PlantNotFoundException.class)
+				.hasMessageContaining("99");
 	}
 
 	@Test
@@ -171,7 +186,7 @@ class PlantServiceImplTest {
 		when(plantRepository.findById(99L)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> plantService.deletePlant(99L))
-				.isInstanceOf(RuntimeException.class)
+				.isInstanceOf(PlantNotFoundException.class)
 				.hasMessageContaining("99");
 	}
 }
