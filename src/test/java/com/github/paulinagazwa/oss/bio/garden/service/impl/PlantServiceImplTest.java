@@ -1,6 +1,7 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
+import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
@@ -158,6 +159,16 @@ class PlantServiceImplTest {
 	}
 
 	@Test
+	void updatePlant_throwsException_whenNotFound() {
+
+		when(plantRepository.findById(99L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> plantService.updatePlant(99L, new PlantUpdateRequest()))
+				.isInstanceOf(PlantNotFoundException.class)
+				.hasMessageContaining("99");
+	}
+
+	@Test
 	void deletePlant_deletesEntity_whenFound() {
 
 		PlantEntity entity = new PlantEntity();
@@ -175,7 +186,7 @@ class PlantServiceImplTest {
 		when(plantRepository.findById(99L)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> plantService.deletePlant(99L))
-				.isInstanceOf(RuntimeException.class)
+				.isInstanceOf(PlantNotFoundException.class)
 				.hasMessageContaining("99");
 	}
 }
