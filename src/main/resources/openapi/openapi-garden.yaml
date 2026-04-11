@@ -4,8 +4,10 @@ info:
   version: 1.0.0
   description: OpenAPI definition to backend app in Spring Boot.
 servers:
+  - url: https://localhost:8443
+    description: Local server (HTTPS)
   - url: http://localhost:8080
-    description: Local server
+    description: Local server (HTTP – redirects to HTTPS)
 
 tags:
   - name: Plants
