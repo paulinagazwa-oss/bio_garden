@@ -36,6 +36,9 @@ public interface PlantMapper {
 
 	@Mapping(target = SOW_FROM, source = PERIOD_SOW_FROM)
 	@Mapping(target = SOW_TO, source = PERIOD_SOW_TO)
+	// TODO fix with openApi
+	@Mapping(target = "companions", ignore = true)
+	@Mapping(target = "companionFor", ignore = true)
 	PlantEntity toEntity(Plant plant);
 
 	@Mapping(target = ID, ignore = true)
@@ -43,6 +46,9 @@ public interface PlantMapper {
 	@Mapping(target = LAST_UPDATE_DATE, ignore = true)
 	@Mapping(target = SOW_FROM, source = PERIOD_SOW_FROM)
 	@Mapping(target = SOW_TO, source = PERIOD_SOW_TO)
+	// TODO fix with openApi
+	@Mapping(target = "companions", ignore = true)
+	@Mapping(target = "companionFor", ignore = true)
 	PlantEntity fromCreateRequest(PlantCreateRequest plantCreateRequest);
 
 	@Mapping(target = ID, ignore = true)
@@ -50,6 +56,9 @@ public interface PlantMapper {
 	@Mapping(target = LAST_UPDATE_DATE, ignore = true)
 	@Mapping(target = SOW_FROM, source = PERIOD_SOW_FROM)
 	@Mapping(target = SOW_TO, source = PERIOD_SOW_TO)
+	// TODO fix with openApi
+	@Mapping(target = "companions", ignore = true)
+	@Mapping(target = "companionFor", ignore = true)
 	void updateEntityFromRequest(PlantUpdateRequest request, @MappingTarget PlantEntity entity);
 
 	default OffsetDateTime map(LocalDateTime value) {
