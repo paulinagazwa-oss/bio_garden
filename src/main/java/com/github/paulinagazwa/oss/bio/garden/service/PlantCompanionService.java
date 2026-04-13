@@ -1,39 +1,24 @@
 package com.github.paulinagazwa.oss.bio.garden.service;
 
-import com.github.paulinagazwa.oss.bio.garden.entity.PlantCompanionEntity;
-import com.github.paulinagazwa.oss.bio.garden.entity.RelationshipType;
+import com.github.paulinagazwa.oss.bio.garden.model.CompanionRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.CompanionUpdateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantCompanion;
+import com.github.paulinagazwa.oss.bio.garden.model.RelationshipType;
 
 import java.util.List;
 
 public interface PlantCompanionService {
 
-	PlantCompanionEntity createCompanionRelationship(
-			Long plantId,
-			Long companionPlantId,
-			RelationshipType relationshipType,
-			Integer recommendedDistanceCm,
-			Boolean bidirectional
-	);
+	PlantCompanion createCompanionRelationship(CompanionRequest companionRequest);
 
-	List<PlantCompanionEntity> getCompanionsForPlant(Long plantId);
+	List<PlantCompanion> getCompanionsForPlant(Long plantId);
 
-	List<PlantCompanionEntity> getCompanionsByType(Long plantId, RelationshipType relationshipType);
-
-	List<PlantCompanionEntity> getGoodCompanions(Long plantId);
-
-	List<PlantCompanionEntity> getBadCompanions(Long plantId);
-
-	List<PlantCompanionEntity> getCompanionRowPlants(Long plantId);
+	List<PlantCompanion> getCompanionsByType(Long plantId, RelationshipType relationshipType);
 
 	void deleteCompanionRelationship(Long id);
 
-	PlantCompanionEntity updateCompanionRelationship(
-			Long id,
-			String effectDescription,
-			Integer recommendedDistanceCm,
-			Boolean bidirectional
-	);
+	PlantCompanion updateCompanionRelationship(Long plantId, CompanionUpdateRequest updateRequest);
 
-	List<PlantCompanionEntity> getAllRelationshipsForPlant(Long plantId);
+	List<PlantCompanion> getAllRelationshipsForPlant(Long plantId);
 }
 

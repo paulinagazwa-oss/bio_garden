@@ -2,7 +2,7 @@ package com.github.paulinagazwa.oss.bio.garden.repository;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantCompanionEntity;
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
-import com.github.paulinagazwa.oss.bio.garden.entity.RelationshipType;
+import com.github.paulinagazwa.oss.bio.garden.model.RelationshipType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -2,26 +2,37 @@ package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantCompanionEntity;
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
-import com.github.paulinagazwa.oss.bio.garden.entity.RelationshipType;
+import com.github.paulinagazwa.oss.bio.garden.exception.PlantCompanionException;
 import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
+import com.github.paulinagazwa.oss.bio.garden.mapper.PlantCompanionMapper;
+import com.github.paulinagazwa.oss.bio.garden.model.CompanionRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.CompanionUpdateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantCompanion;
+import com.github.paulinagazwa.oss.bio.garden.model.RelationshipType;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantCompanionRepository;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,381 +44,464 @@ class PlantCompanionServiceImplTest {
 	@Mock
 	private PlantRepository plantRepository;
 
-	@InjectMocks
-	private PlantCompanionServiceImpl plantCompanionService;
+	@Mock
+	private PlantCompanionMapper plantCompanionMapper;
 
-	private PlantEntity plant1;
-
-	private PlantEntity plant2;
-
-	private PlantCompanionEntity companion;
+	private PlantCompanionServiceImpl service;
 
 	@BeforeEach
 	void setUp() {
 
-		plant1 = new PlantEntity();
-		plant1.setId(1L);
-		plant1.setName("Tomato");
-
-		plant2 = new PlantEntity();
-		plant2.setId(2L);
-		plant2.setName("Basil");
-
-		companion = PlantCompanionEntity.builder()
-				.id(1L)
-				.plant(plant1)
-				.companionPlant(plant2)
-				.relationshipType(RelationshipType.GOOD)
-				.recommendedDistanceCm(30)
-				.bidirectional(true)
-				.build();
+		service = new PlantCompanionServiceImpl(plantCompanionRepository, plantRepository, plantCompanionMapper);
 	}
 
 	@Test
-	void createCompanionRelationship_createsRelationshipAndReverseWhenBidirectionalTrue() {
+	void createCompanionRelationship_createsSingleRelationship_whenBidirectionalIsFalse() {
 
-		when(plantRepository.findById(1L)).thenReturn(Optional.of(plant1));
-		when(plantRepository.findById(2L)).thenReturn(Optional.of(plant2));
-		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(1L, 2L, RelationshipType.GOOD))
-				.thenReturn(false);
-		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(2L, 1L, RelationshipType.GOOD))
-				.thenReturn(false);
+		Long plantId = 1L;
+		Long companionId = 2L;
+		RelationshipType type = RelationshipType.values()[0];
 
-		PlantCompanionEntity saved = PlantCompanionEntity.builder()
-				.id(10L)
-				.plant(plant1)
-				.companionPlant(plant2)
-				.relationshipType(RelationshipType.GOOD)
-				.recommendedDistanceCm(30)
-				.bidirectional(true)
-				.build();
-		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(saved);
+		PlantEntity plant = mock(PlantEntity.class);
+		PlantEntity companionPlant = mock(PlantEntity.class);
 
-		PlantCompanionEntity result = plantCompanionService.createCompanionRelationship(
-				1L, 2L, RelationshipType.GOOD, 30, true
-		);
+		CompanionRequest request = mock(CompanionRequest.class);
+		when(request.getPlantId()).thenReturn(plantId);
+		when(request.getCompanionPlantId()).thenReturn(companionId);
+		when(request.getRelationshipType()).thenReturn(type);
+		when(request.getRecommendedDistanceCm()).thenReturn(10);
+		when(request.getBidirectional()).thenReturn(false);
 
-		assertThat(result).isSameAs(saved);
-		verify(plantCompanionRepository, times(2)).save(any(PlantCompanionEntity.class));
-	}
-
-	@Test
-	void createCompanionRelationship_createsOnlyOneRelationshipWhenBidirectionalFalse() {
-
-		when(plantRepository.findById(1L)).thenReturn(Optional.of(plant1));
-		when(plantRepository.findById(2L)).thenReturn(Optional.of(plant2));
-		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(1L, 2L, RelationshipType.GOOD))
+		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
+		when(plantRepository.findById(companionId)).thenReturn(Optional.of(companionPlant));
+		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(plantId, companionId, type))
 				.thenReturn(false);
 
-		PlantCompanionEntity saved = PlantCompanionEntity.builder()
-				.id(11L)
-				.plant(plant1)
-				.companionPlant(plant2)
-				.relationshipType(RelationshipType.GOOD)
-				.recommendedDistanceCm(25)
+		PlantCompanionEntity savedEntity = PlantCompanionEntity.builder()
+				.id(100L)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
+				.recommendedDistanceCm(10)
 				.bidirectional(false)
 				.build();
-		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(saved);
 
-		PlantCompanionEntity result = plantCompanionService.createCompanionRelationship(
-				1L, 2L, RelationshipType.GOOD, 25, false
-		);
+		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(savedEntity);
 
-		assertThat(result).isSameAs(saved);
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(savedEntity)).thenReturn(mapped);
+
+		PlantCompanion result = service.createCompanionRelationship(request);
+
+		assertSame(mapped, result);
+
+		ArgumentCaptor<PlantCompanionEntity> captor = ArgumentCaptor.forClass(PlantCompanionEntity.class);
+		verify(plantCompanionRepository, times(1)).save(captor.capture());
+		PlantCompanionEntity toSave = captor.getValue();
+		assertSame(plant, toSave.getPlant());
+		assertSame(companionPlant, toSave.getCompanionPlant());
+		assertEquals(type, toSave.getRelationshipType());
+		assertEquals(10, toSave.getRecommendedDistanceCm());
+		assertEquals(false, toSave.getBidirectional());
+
+		verify(plantCompanionRepository, never())
+				.existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type);
+	}
+
+	@Test
+	void createCompanionRelationship_createsBidirectionalRelationshipByDefault_whenBidirectionalIsNull() {
+
+		Long plantId = 1L;
+		Long companionId = 2L;
+		RelationshipType type = RelationshipType.values()[0];
+
+		PlantEntity plant = mock(PlantEntity.class);
+		PlantEntity companionPlant = mock(PlantEntity.class);
+
+		CompanionRequest request = mock(CompanionRequest.class);
+		when(request.getPlantId()).thenReturn(plantId);
+		when(request.getCompanionPlantId()).thenReturn(companionId);
+		when(request.getRelationshipType()).thenReturn(type);
+		when(request.getRecommendedDistanceCm()).thenReturn(25);
+		when(request.getBidirectional()).thenReturn(null);
+
+		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
+		when(plantRepository.findById(companionId)).thenReturn(Optional.of(companionPlant));
+
+		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(plantId, companionId, type))
+				.thenReturn(false);
+		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type))
+				.thenReturn(false);
+
+		PlantCompanionEntity savedEntity = PlantCompanionEntity.builder()
+				.id(101L)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
+				.recommendedDistanceCm(25)
+				.bidirectional(true)
+				.build();
+
+		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(savedEntity);
+
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(savedEntity)).thenReturn(mapped);
+
+		PlantCompanion result = service.createCompanionRelationship(request);
+
+		assertSame(mapped, result);
+
+		ArgumentCaptor<PlantCompanionEntity> captor = ArgumentCaptor.forClass(PlantCompanionEntity.class);
+		verify(plantCompanionRepository, times(2)).save(captor.capture());
+		List<PlantCompanionEntity> saved = captor.getAllValues();
+
+		PlantCompanionEntity forward = saved.get(0);
+		assertSame(plant, forward.getPlant());
+		assertSame(companionPlant, forward.getCompanionPlant());
+		assertEquals(type, forward.getRelationshipType());
+		assertEquals(25, forward.getRecommendedDistanceCm());
+		assertEquals(true, forward.getBidirectional());
+
+		PlantCompanionEntity reverse = saved.get(1);
+		assertSame(companionPlant, reverse.getPlant());
+		assertSame(plant, reverse.getCompanionPlant());
+		assertEquals(type, reverse.getRelationshipType());
+		assertEquals(25, reverse.getRecommendedDistanceCm());
+		assertEquals(true, reverse.getBidirectional());
+	}
+
+	@Test
+	void createCompanionRelationship_doesNotCreateReverse_whenReverseAlreadyExists() {
+
+		Long plantId = 1L;
+		Long companionId = 2L;
+		RelationshipType type = RelationshipType.values()[0];
+
+		PlantEntity plant = mock(PlantEntity.class);
+		PlantEntity companionPlant = mock(PlantEntity.class);
+
+		CompanionRequest request = mock(CompanionRequest.class);
+		when(request.getPlantId()).thenReturn(plantId);
+		when(request.getCompanionPlantId()).thenReturn(companionId);
+		when(request.getRelationshipType()).thenReturn(type);
+		when(request.getRecommendedDistanceCm()).thenReturn(5);
+		when(request.getBidirectional()).thenReturn(true);
+
+		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
+		when(plantRepository.findById(companionId)).thenReturn(Optional.of(companionPlant));
+
+		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(plantId, companionId, type))
+				.thenReturn(false);
+		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type))
+				.thenReturn(true);
+
+		PlantCompanionEntity savedEntity = PlantCompanionEntity.builder().id(102L).build();
+		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(savedEntity);
+
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(savedEntity)).thenReturn(mapped);
+
+		PlantCompanion result = service.createCompanionRelationship(request);
+
+		assertSame(mapped, result);
 		verify(plantCompanionRepository, times(1)).save(any(PlantCompanionEntity.class));
 	}
 
 	@Test
-	void createCompanionRelationship_defaultsBidirectionalToTrueWhenNullAndCreatesReverse() {
+	void createCompanionRelationship_throwsException_whenPlantEqualsCompanionPlant() {
 
-		when(plantRepository.findById(1L)).thenReturn(Optional.of(plant1));
-		when(plantRepository.findById(2L)).thenReturn(Optional.of(plant2));
-		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(1L, 2L, RelationshipType.GOOD))
-				.thenReturn(false);
+		Long plantId = 1L;
 
-		PlantCompanionEntity saved = PlantCompanionEntity.builder()
-				.id(12L)
-				.plant(plant1)
-				.companionPlant(plant2)
-				.relationshipType(RelationshipType.GOOD)
-				.recommendedDistanceCm(30)
-				.bidirectional(true)
-				.build();
-		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(saved);
+		CompanionRequest request = mock(CompanionRequest.class);
+		when(request.getPlantId()).thenReturn(plantId);
+		when(request.getCompanionPlantId()).thenReturn(plantId);
+		when(request.getRelationshipType()).thenReturn(RelationshipType.values()[0]);
 
-		PlantCompanionEntity result = plantCompanionService.createCompanionRelationship(
-				1L, 2L, RelationshipType.GOOD, 30, null
-		);
+		assertThrows(PlantCompanionException.class, () -> service.createCompanionRelationship(request));
 
-		assertThat(result).isSameAs(saved);
-		verify(plantCompanionRepository, times(2)).save(any(PlantCompanionEntity.class));
+		verifyNoInteractions(plantRepository);
+		verifyNoInteractions(plantCompanionRepository);
+		verifyNoInteractions(plantCompanionMapper);
 	}
 
 	@Test
-	void createCompanionRelationship_throwsWhenSamePlantProvided() {
+	void createCompanionRelationship_throwsException_whenPlantDoesNotExist() {
 
-		assertThatThrownBy(() -> plantCompanionService.createCompanionRelationship(
-				1L, 1L, RelationshipType.GOOD, 30, true
-		)).isInstanceOf(RuntimeException.class);
+		Long plantId = 1L;
+		Long companionId = 2L;
 
-		verify(plantRepository, times(0)).findById(any());
-		verify(plantCompanionRepository, times(0)).save(any());
+		CompanionRequest request = mock(CompanionRequest.class);
+		when(request.getPlantId()).thenReturn(plantId);
+		when(request.getCompanionPlantId()).thenReturn(companionId);
+		when(request.getRelationshipType()).thenReturn(RelationshipType.values()[0]);
+
+		when(plantRepository.findById(plantId)).thenReturn(Optional.empty());
+
+		assertThrows(PlantNotFoundException.class, () -> service.createCompanionRelationship(request));
+
+		verify(plantRepository).findById(plantId);
+		verify(plantRepository, never()).findById(companionId);
+		verifyNoInteractions(plantCompanionRepository);
+		verifyNoInteractions(plantCompanionMapper);
 	}
 
 	@Test
-	void createCompanionRelationship_throwsWhenPlantNotFound() {
+	void createCompanionRelationship_throwsException_whenCompanionPlantDoesNotExist() {
 
-		when(plantRepository.findById(1L)).thenReturn(Optional.empty());
+		Long plantId = 1L;
+		Long companionId = 2L;
 
-		assertThatThrownBy(() -> plantCompanionService.createCompanionRelationship(
-				1L, 2L, RelationshipType.GOOD, 30, true
-		)).isInstanceOf(PlantNotFoundException.class);
+		CompanionRequest request = mock(CompanionRequest.class);
+		when(request.getPlantId()).thenReturn(plantId);
+		when(request.getCompanionPlantId()).thenReturn(companionId);
+		when(request.getRelationshipType()).thenReturn(RelationshipType.values()[0]);
 
-		verify(plantCompanionRepository, times(0)).save(any());
+		PlantEntity plant = mock(PlantEntity.class);
+		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
+		when(plantRepository.findById(companionId)).thenReturn(Optional.empty());
+
+		assertThrows(PlantNotFoundException.class, () -> service.createCompanionRelationship(request));
+
+		verify(plantRepository).findById(plantId);
+		verify(plantRepository).findById(companionId);
+		verifyNoInteractions(plantCompanionRepository);
+		verifyNoInteractions(plantCompanionMapper);
 	}
 
 	@Test
-	void createCompanionRelationship_throwsWhenCompanionPlantNotFound() {
+	void createCompanionRelationship_throwsException_whenRelationshipAlreadyExists() {
 
-		when(plantRepository.findById(1L)).thenReturn(Optional.of(plant1));
-		when(plantRepository.findById(2L)).thenReturn(Optional.empty());
+		Long plantId = 1L;
+		Long companionId = 2L;
+		RelationshipType type = RelationshipType.values()[0];
 
-		assertThatThrownBy(() -> plantCompanionService.createCompanionRelationship(
-				1L, 2L, RelationshipType.GOOD, 30, true
-		)).isInstanceOf(PlantNotFoundException.class);
+		CompanionRequest request = mock(CompanionRequest.class);
+		when(request.getPlantId()).thenReturn(plantId);
+		when(request.getCompanionPlantId()).thenReturn(companionId);
+		when(request.getRelationshipType()).thenReturn(type);
 
-		verify(plantCompanionRepository, times(0)).save(any());
-	}
+		PlantEntity plant = mock(PlantEntity.class);
+		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
+		when(plantRepository.findById(companionId)).thenReturn(Optional.of(companionPlant));
 
-	@Test
-	void createCompanionRelationship_throwsWhenRelationshipAlreadyExists() {
-
-		when(plantRepository.findById(1L)).thenReturn(Optional.of(plant1));
-		when(plantRepository.findById(2L)).thenReturn(Optional.of(plant2));
-		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(1L, 2L, RelationshipType.GOOD))
+		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(plantId, companionId, type))
 				.thenReturn(true);
 
-		assertThatThrownBy(() -> plantCompanionService.createCompanionRelationship(
-				1L, 2L, RelationshipType.GOOD, 30, true
-		)).isInstanceOf(RuntimeException.class);
+		assertThrows(PlantCompanionException.class, () -> service.createCompanionRelationship(request));
 
-		verify(plantCompanionRepository, times(0)).save(any());
+		verify(plantCompanionRepository, never()).save(any());
+		verifyNoInteractions(plantCompanionMapper);
 	}
 
 	@Test
-	void createCompanionRelationship_doesNotCreateReverseWhenReverseAlreadyExists() {
+	void getCompanionsForPlant_returnsMappedCompanions() {
 
-		when(plantRepository.findById(1L)).thenReturn(Optional.of(plant1));
-		when(plantRepository.findById(2L)).thenReturn(Optional.of(plant2));
-		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(1L, 2L, RelationshipType.GOOD))
-				.thenReturn(false);
-		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(2L, 1L, RelationshipType.GOOD))
-				.thenReturn(true);
+		Long plantId = 1L;
 
-		PlantCompanionEntity saved = PlantCompanionEntity.builder()
-				.id(13L)
-				.plant(plant1)
-				.companionPlant(plant2)
-				.relationshipType(RelationshipType.GOOD)
-				.recommendedDistanceCm(30)
-				.bidirectional(true)
-				.build();
-		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(saved);
+		PlantEntity plant = mock(PlantEntity.class);
+		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
 
-		PlantCompanionEntity result = plantCompanionService.createCompanionRelationship(
-				1L, 2L, RelationshipType.GOOD, 30, true
-		);
+		PlantCompanionEntity e1 = mock(PlantCompanionEntity.class);
+		PlantCompanionEntity e2 = mock(PlantCompanionEntity.class);
+		when(plantCompanionRepository.findByPlant(plant)).thenReturn(List.of(e1, e2));
 
-		assertThat(result).isSameAs(saved);
-		verify(plantCompanionRepository, times(1)).save(any(PlantCompanionEntity.class));
+		PlantCompanion m1 = mock(PlantCompanion.class);
+		PlantCompanion m2 = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(e1)).thenReturn(m1);
+		when(plantCompanionMapper.toModel(e2)).thenReturn(m2);
+
+		List<PlantCompanion> result = service.getCompanionsForPlant(plantId);
+
+		assertEquals(List.of(m1, m2), result);
 	}
 
 	@Test
-	void getCompanionsForPlant_returnsCompanionsForExistingPlant() {
+	void getCompanionsForPlant_throwsException_whenPlantDoesNotExist() {
 
-		when(plantRepository.findById(1L)).thenReturn(Optional.of(plant1));
-		List<PlantCompanionEntity> companions = Collections.singletonList(companion);
-		when(plantCompanionRepository.findByPlant(plant1)).thenReturn(companions);
+		Long plantId = 1L;
+		when(plantRepository.findById(plantId)).thenReturn(Optional.empty());
 
-		List<PlantCompanionEntity> result = plantCompanionService.getCompanionsForPlant(1L);
+		assertThrows(PlantNotFoundException.class, () -> service.getCompanionsForPlant(plantId));
 
-		assertThat(result).isEqualTo(companions);
+		verifyNoInteractions(plantCompanionRepository);
+		verifyNoInteractions(plantCompanionMapper);
 	}
 
 	@Test
-	void getCompanionsForPlant_throwsWhenPlantNotFound() {
+	void getCompanionsByType_returnsMappedCompanions() {
 
-		when(plantRepository.findById(1L)).thenReturn(Optional.empty());
+		Long plantId = 1L;
+		RelationshipType type = RelationshipType.values()[0];
 
-		assertThatThrownBy(() -> plantCompanionService.getCompanionsForPlant(1L))
-				.isInstanceOf(PlantNotFoundException.class);
+		PlantEntity plant = mock(PlantEntity.class);
+		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
+
+		PlantCompanionEntity e1 = mock(PlantCompanionEntity.class);
+		when(plantCompanionRepository.findByPlantAndRelationshipType(plant, type)).thenReturn(List.of(e1));
+
+		PlantCompanion m1 = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(e1)).thenReturn(m1);
+
+		List<PlantCompanion> result = service.getCompanionsByType(plantId, type);
+
+		assertEquals(List.of(m1), result);
 	}
 
 	@Test
-	void getCompanionsByType_returnsOnlyRequestedRelationshipType() {
+	void getCompanionsByType_throwsException_whenPlantDoesNotExist() {
 
-		when(plantRepository.findById(1L)).thenReturn(Optional.of(plant1));
-		List<PlantCompanionEntity> companions = Collections.singletonList(companion);
-		when(plantCompanionRepository.findByPlantAndRelationshipType(plant1, RelationshipType.GOOD)).thenReturn(companions);
+		Long plantId = 1L;
+		RelationshipType type = RelationshipType.values()[0];
+		when(plantRepository.findById(plantId)).thenReturn(Optional.empty());
 
-		List<PlantCompanionEntity> result = plantCompanionService.getCompanionsByType(1L, RelationshipType.GOOD);
+		assertThrows(PlantNotFoundException.class, () -> service.getCompanionsByType(plantId, type));
 
-		assertThat(result).isEqualTo(companions);
+		verifyNoInteractions(plantCompanionRepository);
+		verifyNoInteractions(plantCompanionMapper);
 	}
 
 	@Test
-	void getGoodCompanions_returnsGoodCompanions() {
+	void deleteCompanionRelationship_deletesBothSides_whenBidirectionalIsTrueAndReverseExists() {
 
-		List<PlantCompanionEntity> companions = Collections.singletonList(companion);
-		when(plantCompanionRepository.findByPlantIdAndRelationshipType(1L, RelationshipType.GOOD)).thenReturn(companions);
+		Long relationshipId = 10L;
+		Long plantId = 1L;
+		Long companionId = 2L;
+		RelationshipType type = RelationshipType.values()[0];
 
-		List<PlantCompanionEntity> result = plantCompanionService.getGoodCompanions(1L);
+		PlantEntity plant = mock(PlantEntity.class);
+		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(plant.getId()).thenReturn(plantId);
+		when(companionPlant.getId()).thenReturn(companionId);
 
-		assertThat(result).isEqualTo(companions);
-	}
+		PlantCompanionEntity companion = mock(PlantCompanionEntity.class);
+		when(companion.getBidirectional()).thenReturn(true);
+		when(companion.getPlant()).thenReturn(plant);
+		when(companion.getCompanionPlant()).thenReturn(companionPlant);
+		when(companion.getRelationshipType()).thenReturn(type);
 
-	@Test
-	void getBadCompanions_returnsBadCompanions() {
+		PlantCompanionEntity reverse = mock(PlantCompanionEntity.class);
 
-		when(plantCompanionRepository.findByPlantIdAndRelationshipType(1L, RelationshipType.BAD))
-				.thenReturn(List.of());
-
-		List<PlantCompanionEntity> result = plantCompanionService.getBadCompanions(1L);
-
-		assertThat(result).isEmpty();
-	}
-
-	@Test
-	void getCompanionRowPlants_returnsCompanionRowPlants() {
-
-		when(plantCompanionRepository.findByPlantIdAndRelationshipType(1L, RelationshipType.COMPANION_ROW))
-				.thenReturn(List.of(companion));
-
-		List<PlantCompanionEntity> result = plantCompanionService.getCompanionRowPlants(1L);
-
-		assertThat(result).hasSize(1);
-	}
-
-	@Test
-	void deleteCompanionRelationship_deletesBothSidesWhenBidirectionalTrueAndReverseExists() {
-
-		PlantCompanionEntity reverse = PlantCompanionEntity.builder()
-				.id(2L)
-				.plant(plant2)
-				.companionPlant(plant1)
-				.relationshipType(RelationshipType.GOOD)
-				.recommendedDistanceCm(30)
-				.bidirectional(true)
-				.build();
-
-		when(plantCompanionRepository.findById(1L)).thenReturn(Optional.of(companion));
-		when(plantCompanionRepository.findByPlantIdAndCompanionPlantIdAndRelationshipType(2L, 1L, RelationshipType.GOOD))
+		when(plantCompanionRepository.findById(relationshipId)).thenReturn(Optional.of(companion));
+		when(plantCompanionRepository.findByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type))
 				.thenReturn(reverse);
 
-		plantCompanionService.deleteCompanionRelationship(1L);
+		service.deleteCompanionRelationship(relationshipId);
 
-		verify(plantCompanionRepository, times(1)).delete(reverse);
-		verify(plantCompanionRepository, times(1)).delete(companion);
+		verify(plantCompanionRepository).delete(reverse);
+		verify(plantCompanionRepository).delete(companion);
 	}
 
 	@Test
-	void deleteCompanionRelationship_deletesOnlyOneSideWhenBidirectionalFalse() {
+	void deleteCompanionRelationship_deletesOnlyForward_whenBidirectionalIsFalse() {
 
-		companion.setBidirectional(false);
-		when(plantCompanionRepository.findById(1L)).thenReturn(Optional.of(companion));
+		Long relationshipId = 10L;
 
-		plantCompanionService.deleteCompanionRelationship(1L);
+		PlantCompanionEntity companion = mock(PlantCompanionEntity.class);
+		when(companion.getBidirectional()).thenReturn(false);
 
-		verify(plantCompanionRepository, times(0))
-				.findByPlantIdAndCompanionPlantIdAndRelationshipType(any(), any(), any());
-		verify(plantCompanionRepository, times(1)).delete(companion);
+		when(plantCompanionRepository.findById(relationshipId)).thenReturn(Optional.of(companion));
+
+		service.deleteCompanionRelationship(relationshipId);
+
+		verify(plantCompanionRepository, never()).findByPlantIdAndCompanionPlantIdAndRelationshipType(anyLong(), anyLong(), any());
+		verify(plantCompanionRepository).delete(companion);
 	}
 
 	@Test
-	void deleteCompanionRelationship_deletesOnlyOneSideWhenBidirectionalTrueButReverseDoesNotExist() {
+	void deleteCompanionRelationship_deletesOnlyForward_whenReverseDoesNotExist() {
 
-		when(plantCompanionRepository.findById(1L)).thenReturn(Optional.of(companion));
-		when(plantCompanionRepository.findByPlantIdAndCompanionPlantIdAndRelationshipType(2L, 1L, RelationshipType.GOOD))
+		Long relationshipId = 10L;
+		Long plantId = 1L;
+		Long companionId = 2L;
+		RelationshipType type = RelationshipType.GOOD;
+
+		PlantEntity plant = mock(PlantEntity.class);
+		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(plant.getId()).thenReturn(plantId);
+		when(companionPlant.getId()).thenReturn(companionId);
+
+		PlantCompanionEntity companion = mock(PlantCompanionEntity.class);
+		when(companion.getBidirectional()).thenReturn(true);
+		when(companion.getPlant()).thenReturn(plant);
+		when(companion.getCompanionPlant()).thenReturn(companionPlant);
+		when(companion.getRelationshipType()).thenReturn(type);
+
+		when(plantCompanionRepository.findById(relationshipId)).thenReturn(Optional.of(companion));
+		when(plantCompanionRepository.findByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type))
 				.thenReturn(null);
 
-		plantCompanionService.deleteCompanionRelationship(1L);
+		service.deleteCompanionRelationship(relationshipId);
 
-		verify(plantCompanionRepository, times(1)).delete(companion);
+		verify(plantCompanionRepository, never()).delete(isNull());
+		verify(plantCompanionRepository).delete(companion);
 	}
 
 	@Test
-	void deleteCompanionRelationship_throwsWhenRelationshipNotFound() {
+	void deleteCompanionRelationship_throwsException_whenRelationshipDoesNotExist() {
 
-		when(plantCompanionRepository.findById(1L)).thenReturn(Optional.empty());
+		Long relationshipId = 10L;
+		when(plantCompanionRepository.findById(relationshipId)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> plantCompanionService.deleteCompanionRelationship(1L))
-				.isInstanceOf(RuntimeException.class);
+		assertThrows(PlantCompanionException.class, () -> service.deleteCompanionRelationship(relationshipId));
 
-		verify(plantCompanionRepository, times(0)).delete(any());
+		verify(plantCompanionRepository, never()).delete(any());
 	}
 
 	@Test
 	void updateCompanionRelationship_updatesProvidedFieldsOnly() {
 
-		PlantCompanionEntity existing = PlantCompanionEntity.builder()
-				.id(1L)
-				.plant(plant1)
-				.companionPlant(plant2)
-				.relationshipType(RelationshipType.GOOD)
-				.recommendedDistanceCm(30)
-				.bidirectional(true)
-				.build();
+		Long relationshipId = 10L;
 
-		when(plantCompanionRepository.findById(1L)).thenReturn(Optional.of(existing));
-		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		PlantCompanionEntity existing = mock(PlantCompanionEntity.class);
+		when(plantCompanionRepository.findById(relationshipId)).thenReturn(Optional.of(existing));
+		when(plantCompanionRepository.save(existing)).thenReturn(existing);
 
-		PlantCompanionEntity updated = plantCompanionService.updateCompanionRelationship(1L, null, 50, false);
+		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
+		when(updateRequest.getRecommendedDistanceCm()).thenReturn(30);
+		when(updateRequest.getBidirectional()).thenReturn(null);
 
-		assertThat(updated.getRecommendedDistanceCm()).isEqualTo(50);
-		assertThat(updated.getBidirectional()).isFalse();
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(existing)).thenReturn(mapped);
+
+		PlantCompanion result = service.updateCompanionRelationship(relationshipId, updateRequest);
+
+		assertSame(mapped, result);
+		verify(existing).setRecommendedDistanceCm(30);
+		verify(existing, never()).setBidirectional(anyBoolean());
+		verify(plantCompanionRepository).save(existing);
 	}
 
 	@Test
-	void updateCompanionRelationship_doesNotChangeFieldsWhenNullValuesProvided() {
+	void updateCompanionRelationship_throwsException_whenRelationshipDoesNotExist() {
 
-		PlantCompanionEntity existing = PlantCompanionEntity.builder()
-				.id(1L)
-				.plant(plant1)
-				.companionPlant(plant2)
-				.relationshipType(RelationshipType.GOOD)
-				.recommendedDistanceCm(30)
-				.bidirectional(true)
-				.build();
+		Long relationshipId = 10L;
+		when(plantCompanionRepository.findById(relationshipId)).thenReturn(Optional.empty());
 
-		when(plantCompanionRepository.findById(1L)).thenReturn(Optional.of(existing));
-		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
 
-		PlantCompanionEntity updated = plantCompanionService.updateCompanionRelationship(1L, null, null, null);
+		assertThrows(PlantCompanionException.class, () -> service.updateCompanionRelationship(relationshipId, updateRequest));
 
-		assertThat(updated.getRecommendedDistanceCm()).isEqualTo(30);
-		assertThat(updated.getBidirectional()).isTrue();
+		verify(plantCompanionRepository, never()).save(any());
+		verifyNoInteractions(plantCompanionMapper);
 	}
 
 	@Test
-	void updateCompanionRelationship_throwsWhenRelationshipNotFound() {
+	void getAllRelationshipsForPlant_returnsMappedRelationships() {
 
-		when(plantCompanionRepository.findById(1L)).thenReturn(Optional.empty());
+		Long plantId = 1L;
 
-		assertThatThrownBy(() -> plantCompanionService.updateCompanionRelationship(1L, null, 40, true))
-				.isInstanceOf(RuntimeException.class);
+		PlantCompanionEntity e1 = mock(PlantCompanionEntity.class);
+		PlantCompanionEntity e2 = mock(PlantCompanionEntity.class);
+		when(plantCompanionRepository.findByPlantIdOrCompanionPlantId(plantId, plantId)).thenReturn(List.of(e1, e2));
 
-		verify(plantCompanionRepository, times(0)).save(any());
-	}
+		PlantCompanion m1 = mock(PlantCompanion.class);
+		PlantCompanion m2 = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(e1)).thenReturn(m1);
+		when(plantCompanionMapper.toModel(e2)).thenReturn(m2);
 
-	@Test
-	void getAllRelationshipsForPlant_returnsRelationshipsWherePlantOrCompanionMatches() {
+		List<PlantCompanion> result = service.getAllRelationshipsForPlant(plantId);
 
-		List<PlantCompanionEntity> relationships = Collections.singletonList(companion);
-		when(plantCompanionRepository.findByPlantIdOrCompanionPlantId(1L, 1L)).thenReturn(relationships);
-
-		List<PlantCompanionEntity> result = plantCompanionService.getAllRelationshipsForPlant(1L);
-
-		assertThat(result).isEqualTo(relationships);
+		assertEquals(List.of(m1, m2), result);
 	}
 }
-

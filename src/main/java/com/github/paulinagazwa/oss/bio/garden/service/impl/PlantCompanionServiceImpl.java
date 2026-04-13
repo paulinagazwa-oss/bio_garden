@@ -2,9 +2,13 @@ package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantCompanionEntity;
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
-import com.github.paulinagazwa.oss.bio.garden.entity.RelationshipType;
 import com.github.paulinagazwa.oss.bio.garden.exception.PlantCompanionException;
 import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
+import com.github.paulinagazwa.oss.bio.garden.mapper.PlantCompanionMapper;
+import com.github.paulinagazwa.oss.bio.garden.model.CompanionRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.CompanionUpdateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantCompanion;
+import com.github.paulinagazwa.oss.bio.garden.model.RelationshipType;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantCompanionRepository;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantCompanionService;
@@ -25,14 +29,16 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 
 	private final PlantRepository plantRepository;
 
+	private final PlantCompanionMapper plantCompanionMapper;
+
 	@Override
-	public PlantCompanionEntity createCompanionRelationship(
-			Long plantId,
-			Long companionPlantId,
-			RelationshipType relationshipType,
-			Integer recommendedDistanceCm,
-			Boolean bidirectional
-	) {
+	public PlantCompanion createCompanionRelationship(CompanionRequest request) {
+
+		Long plantId = request.getPlantId();
+		Long companionPlantId = request.getCompanionPlantId();
+		RelationshipType relationshipType = request.getRelationshipType();
+		Integer recommendedDistanceCm = request.getRecommendedDistanceCm();
+		Boolean bidirectional = request.getBidirectional();
 
 		log.info("Creating companion relationship: plant={}, companion={}, type={}",
 				plantId, companionPlantId, relationshipType);
@@ -51,6 +57,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 			throw new PlantCompanionException(plantId, companionPlantId);
 		}
 
+		// TODO mapper
 		PlantCompanionEntity companion = PlantCompanionEntity.builder()
 				.plant(plant)
 				.companionPlant(companionPlant)
@@ -76,51 +83,34 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 		}
 
 		log.info("Companion relationship created with id: {}", saved.getId());
-		return saved;
+		return plantCompanionMapper.toModel(saved);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<PlantCompanionEntity> getCompanionsForPlant(Long plantId) {
+	public List<PlantCompanion> getCompanionsForPlant(Long plantId) {
 
 		log.debug("Getting all companions for plant: {}", plantId);
 		PlantEntity plant = plantRepository.findById(plantId)
 				.orElseThrow(() -> new PlantNotFoundException(plantId));
-		return plantCompanionRepository.findByPlant(plant);
+
+		return plantCompanionRepository.findByPlant(plant)
+				.stream()
+				.map(plantCompanionMapper::toModel)
+				.toList();
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<PlantCompanionEntity> getCompanionsByType(Long plantId, RelationshipType relationshipType) {
+	public List<PlantCompanion> getCompanionsByType(Long plantId, RelationshipType relationshipType) {
 
 		log.debug("Getting companions of type {} for plant: {}", relationshipType, plantId);
 		PlantEntity plant = plantRepository.findById(plantId)
 				.orElseThrow(() -> new PlantNotFoundException(plantId));
-		return plantCompanionRepository.findByPlantAndRelationshipType(plant, relationshipType);
-	}
-
-	@Override
-	@Transactional(readOnly = true)
-	public List<PlantCompanionEntity> getGoodCompanions(Long plantId) {
-
-		log.debug("Getting good companions for plant: {}", plantId);
-		return plantCompanionRepository.findByPlantIdAndRelationshipType(plantId, RelationshipType.GOOD);
-	}
-
-	@Override
-	@Transactional(readOnly = true)
-	public List<PlantCompanionEntity> getBadCompanions(Long plantId) {
-
-		log.debug("Getting bad companions for plant: {}", plantId);
-		return plantCompanionRepository.findByPlantIdAndRelationshipType(plantId, RelationshipType.BAD);
-	}
-
-	@Override
-	@Transactional(readOnly = true)
-	public List<PlantCompanionEntity> getCompanionRowPlants(Long plantId) {
-
-		log.debug("Getting companion row plants for plant: {}", plantId);
-		return plantCompanionRepository.findByPlantIdAndRelationshipType(plantId, RelationshipType.COMPANION_ROW);
+		return plantCompanionRepository.findByPlantAndRelationshipType(plant, relationshipType)
+				.stream()
+				.map(plantCompanionMapper::toModel)
+				.toList();
 	}
 
 	@Override
@@ -147,16 +137,14 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 	}
 
 	@Override
-	public PlantCompanionEntity updateCompanionRelationship(
-			Long id,
-			String effectDescription,
-			Integer recommendedDistanceCm,
-			Boolean bidirectional
-	) {
+	public PlantCompanion updateCompanionRelationship(Long plantId, CompanionUpdateRequest updateRequest) {
 
-		log.info("Updating companion relationship: {}", id);
-		PlantCompanionEntity companion = plantCompanionRepository.findById(id)
-				.orElseThrow(() -> new PlantCompanionException(id));
+		Integer recommendedDistanceCm = updateRequest.getRecommendedDistanceCm();
+		Boolean bidirectional = updateRequest.getBidirectional();
+
+		log.info("Updating companion relationship: {}", plantId);
+		PlantCompanionEntity companion = plantCompanionRepository.findById(plantId)
+				.orElseThrow(() -> new PlantCompanionException(plantId));
 
 		if (recommendedDistanceCm != null) {
 			companion.setRecommendedDistanceCm(recommendedDistanceCm);
@@ -167,15 +155,18 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 
 		PlantCompanionEntity updated = plantCompanionRepository.save(companion);
 		log.info("Companion relationship updated");
-		return updated;
+		return plantCompanionMapper.toModel(updated);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<PlantCompanionEntity> getAllRelationshipsForPlant(Long plantId) {
+	public List<PlantCompanion> getAllRelationshipsForPlant(Long plantId) {
 
 		log.debug("Getting all relationships for plant: {}", plantId);
-		return plantCompanionRepository.findByPlantIdOrCompanionPlantId(plantId, plantId);
+		return plantCompanionRepository.findByPlantIdOrCompanionPlantId(plantId, plantId)
+				.stream()
+				.map(plantCompanionMapper::toModel)
+				.toList();
 	}
 }
 

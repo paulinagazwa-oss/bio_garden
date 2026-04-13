@@ -12,6 +12,8 @@ servers:
 tags:
   - name: Plants
     description: Operations related to plants
+  - name: PlantCompanions
+    description: Operations related to plant companion relationships
 
 paths:
   /api/v1/plants:
@@ -161,6 +163,133 @@ paths:
           description: Removed
         "404":
           $ref: "#/components/responses/NotFound"
+  /api/v1/plant-companions:
+    post:
+      tags:
+        - PlantCompanions
+      summary: Create companion relationship
+      operationId: createCompanionRelationship
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanionRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlantCompanion"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/plant-companions/{id}:
+    put:
+      tags:
+        - PlantCompanions
+      summary: Update companion relationship
+      operationId: updateCompanionRelationship
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanionUpdateRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlantCompanion"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags:
+        - PlantCompanions
+      summary: Delete companion relationship
+      operationId: deleteCompanionRelationship
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        "204":
+          description: Removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/plant-companions/plant/{plantId}:
+    get:
+      tags:
+        - PlantCompanions
+      summary: Get all companions for a plant
+      operationId: getCompanionsForPlant
+      parameters:
+        - name: plantId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlantCompanion"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/plant-companions/plant/{plantId}/type/{relationshipType}:
+    get:
+      tags:
+        - PlantCompanions
+      summary: Get companions by relationship type
+      operationId: getCompanionsByType
+      parameters:
+        - name: plantId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: relationshipType
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/RelationshipType"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlantCompanion"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
 components:
   responses:
@@ -271,6 +400,75 @@ components:
         daysToHarvest:
           type: integer
           minimum: 1
+    RelationshipType:
+      type: string
+      enum:
+        - GOOD
+        - BAD
+        - NEUTRAL
+        - COMPANION_ROW
+
+    PlantCompanion:
+      type: object
+      required:
+        - id
+        - plantId
+        - companionPlantId
+        - relationshipType
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        plantId:
+          type: integer
+          format: int64
+          example: 1
+        companionPlantId:
+          type: integer
+          format: int64
+          example: 2
+        relationshipType:
+          $ref: "#/components/schemas/RelationshipType"
+        recommendedDistanceCm:
+          type: integer
+          minimum: 1
+          example: 30
+        bidirectional:
+          type: boolean
+          example: true
+
+    CompanionRequest:
+      type: object
+      required:
+        - plantId
+        - companionPlantId
+        - relationshipType
+      properties:
+        plantId:
+          type: integer
+          format: int64
+        companionPlantId:
+          type: integer
+          format: int64
+        relationshipType:
+          $ref: "#/components/schemas/RelationshipType"
+        recommendedDistanceCm:
+          type: integer
+          minimum: 1
+        bidirectional:
+          type: boolean
+
+    CompanionUpdateRequest:
+      type: object
+      properties:
+        recommendedDistanceCm:
+          type: integer
+          minimum: 1
+        bidirectional:
+          type: boolean
+        relationshipType:
+          $ref: "#/components/schemas/RelationshipType"
 
     PlantPage:
       type: object

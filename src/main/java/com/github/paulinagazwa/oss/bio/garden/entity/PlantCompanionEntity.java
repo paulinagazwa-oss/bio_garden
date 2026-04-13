@@ -1,5 +1,6 @@
 package com.github.paulinagazwa.oss.bio.garden.entity;
 
+import com.github.paulinagazwa.oss.bio.garden.model.RelationshipType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
