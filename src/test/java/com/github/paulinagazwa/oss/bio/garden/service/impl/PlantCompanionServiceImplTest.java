@@ -25,9 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -69,7 +70,6 @@ class PlantCompanionServiceImplTest {
 		when(request.getPlantId()).thenReturn(plantId);
 		when(request.getCompanionPlantId()).thenReturn(companionId);
 		when(request.getRelationshipType()).thenReturn(type);
-		when(request.getRecommendedDistanceCm()).thenReturn(10);
 		when(request.getBidirectional()).thenReturn(false);
 
 		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
@@ -86,7 +86,8 @@ class PlantCompanionServiceImplTest {
 				.bidirectional(false)
 				.build();
 
-		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(savedEntity);
+		when(plantCompanionMapper.fromCompanionRequest(eq(request), eq(plant), eq(companionPlant))).thenReturn(savedEntity);
+		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenAnswer(i -> i.getArgument(0));
 
 		PlantCompanion mapped = mock(PlantCompanion.class);
 		when(plantCompanionMapper.toModel(savedEntity)).thenReturn(mapped);
@@ -116,24 +117,24 @@ class PlantCompanionServiceImplTest {
 		RelationshipType type = RelationshipType.values()[0];
 
 		PlantEntity plant = mock(PlantEntity.class);
+		when(plant.getId()).thenReturn(plantId);
 		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(companionPlant.getId()).thenReturn(companionId);
 
 		CompanionRequest request = mock(CompanionRequest.class);
 		when(request.getPlantId()).thenReturn(plantId);
 		when(request.getCompanionPlantId()).thenReturn(companionId);
 		when(request.getRelationshipType()).thenReturn(type);
-		when(request.getRecommendedDistanceCm()).thenReturn(25);
 		when(request.getBidirectional()).thenReturn(null);
 
 		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
 		when(plantRepository.findById(companionId)).thenReturn(Optional.of(companionPlant));
-
 		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(plantId, companionId, type))
 				.thenReturn(false);
 		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type))
 				.thenReturn(false);
 
-		PlantCompanionEntity savedEntity = PlantCompanionEntity.builder()
+		PlantCompanionEntity forwardEntity = PlantCompanionEntity.builder()
 				.id(101L)
 				.plant(plant)
 				.companionPlant(companionPlant)
@@ -142,10 +143,21 @@ class PlantCompanionServiceImplTest {
 				.bidirectional(true)
 				.build();
 
-		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(savedEntity);
+		PlantCompanionEntity reverseEntity = PlantCompanionEntity.builder()
+				.id(102L)
+				.plant(companionPlant)
+				.companionPlant(plant)
+				.relationshipType(type)
+				.recommendedDistanceCm(25)
+				.bidirectional(true)
+				.build();
+
+		when(plantCompanionMapper.fromCompanionRequest(eq(request), eq(plant), eq(companionPlant))).thenReturn(forwardEntity);
+		when(plantCompanionMapper.fromCompanionRequest(eq(request), eq(companionPlant), eq(plant))).thenReturn(reverseEntity);
+		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenAnswer(i -> i.getArgument(0));
 
 		PlantCompanion mapped = mock(PlantCompanion.class);
-		when(plantCompanionMapper.toModel(savedEntity)).thenReturn(mapped);
+		when(plantCompanionMapper.toModel(forwardEntity)).thenReturn(mapped);
 
 		PlantCompanion result = service.createCompanionRelationship(request);
 
@@ -170,6 +182,7 @@ class PlantCompanionServiceImplTest {
 		assertEquals(true, reverse.getBidirectional());
 	}
 
+
 	@Test
 	void createCompanionRelationship_doesNotCreateReverse_whenReverseAlreadyExists() {
 
@@ -178,13 +191,14 @@ class PlantCompanionServiceImplTest {
 		RelationshipType type = RelationshipType.values()[0];
 
 		PlantEntity plant = mock(PlantEntity.class);
+		when(plant.getId()).thenReturn(plantId);
 		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(companionPlant.getId()).thenReturn(companionId);
 
 		CompanionRequest request = mock(CompanionRequest.class);
 		when(request.getPlantId()).thenReturn(plantId);
 		when(request.getCompanionPlantId()).thenReturn(companionId);
 		when(request.getRelationshipType()).thenReturn(type);
-		when(request.getRecommendedDistanceCm()).thenReturn(5);
 		when(request.getBidirectional()).thenReturn(true);
 
 		when(plantRepository.findById(plantId)).thenReturn(Optional.of(plant));
@@ -196,6 +210,7 @@ class PlantCompanionServiceImplTest {
 				.thenReturn(true);
 
 		PlantCompanionEntity savedEntity = PlantCompanionEntity.builder().id(102L).build();
+		when(plantCompanionMapper.fromCompanionRequest(eq(request), any(), any())).thenReturn(savedEntity);
 		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenReturn(savedEntity);
 
 		PlantCompanion mapped = mock(PlantCompanion.class);
@@ -451,25 +466,44 @@ class PlantCompanionServiceImplTest {
 	@Test
 	void updateCompanionRelationship_updatesProvidedFieldsOnly() {
 
-		Long relationshipId = 10L;
-
-		PlantCompanionEntity existing = mock(PlantCompanionEntity.class);
-		when(plantCompanionRepository.findById(relationshipId)).thenReturn(Optional.of(existing));
-		when(plantCompanionRepository.save(existing)).thenReturn(existing);
+		Long id = 1L;
 
 		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
 		when(updateRequest.getRecommendedDistanceCm()).thenReturn(30);
 		when(updateRequest.getBidirectional()).thenReturn(null);
 
+		PlantCompanionEntity existing = PlantCompanionEntity.builder()
+				.id(id)
+				.recommendedDistanceCm(10)
+				.bidirectional(true)
+				.build();
+
+		when(plantCompanionRepository.findById(id)).thenReturn(Optional.of(existing));
+		
+		doAnswer(invocation -> {
+			CompanionUpdateRequest req = invocation.getArgument(0);
+			PlantCompanionEntity entity = invocation.getArgument(1);
+			if (req.getRecommendedDistanceCm() != null) {
+				entity.setRecommendedDistanceCm(req.getRecommendedDistanceCm());
+			}
+			return null;
+		}).when(plantCompanionMapper).updateEntityFromRequest(eq(updateRequest), eq(existing));
+
+		when(plantCompanionRepository.save(existing)).thenReturn(existing);
+
 		PlantCompanion mapped = mock(PlantCompanion.class);
 		when(plantCompanionMapper.toModel(existing)).thenReturn(mapped);
 
-		PlantCompanion result = service.updateCompanionRelationship(relationshipId, updateRequest);
+		PlantCompanion result = service.updateCompanionRelationship(id, updateRequest);
 
 		assertSame(mapped, result);
-		verify(existing).setRecommendedDistanceCm(30);
-		verify(existing, never()).setBidirectional(anyBoolean());
-		verify(plantCompanionRepository).save(existing);
+
+		ArgumentCaptor<PlantCompanionEntity> captor = ArgumentCaptor.forClass(PlantCompanionEntity.class);
+		verify(plantCompanionRepository).save(captor.capture());
+		PlantCompanionEntity saved = captor.getValue();
+
+		assertEquals(30, saved.getRecommendedDistanceCm());
+		assertEquals(true, saved.getBidirectional()); // niezmienione
 	}
 
 	@Test

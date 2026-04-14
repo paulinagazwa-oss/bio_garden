@@ -37,8 +37,6 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 		Long plantId = request.getPlantId();
 		Long companionPlantId = request.getCompanionPlantId();
 		RelationshipType relationshipType = request.getRelationshipType();
-		Integer recommendedDistanceCm = request.getRecommendedDistanceCm();
-		Boolean bidirectional = request.getBidirectional();
 
 		log.info("Creating companion relationship: plant={}, companion={}, type={}",
 				plantId, companionPlantId, relationshipType);
@@ -47,43 +45,39 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 			throw new PlantCompanionException();
 		}
 
-		PlantEntity plant = plantRepository.findById(plantId)
-				.orElseThrow(() -> new PlantNotFoundException(plantId));
+		PlantEntity plant = findByPlantIdOrThrow(plantId);
 
-		PlantEntity companionPlant = plantRepository.findById(companionPlantId)
-				.orElseThrow(() -> new PlantNotFoundException(companionPlantId));
+		PlantEntity companionPlant = findByPlantIdOrThrow(companionPlantId);
 
 		if (plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(plantId, companionPlantId, relationshipType)) {
 			throw new PlantCompanionException(plantId, companionPlantId);
 		}
 
-		// TODO mapper
-		PlantCompanionEntity companion = PlantCompanionEntity.builder()
-				.plant(plant)
-				.companionPlant(companionPlant)
-				.relationshipType(relationshipType)
-				.recommendedDistanceCm(recommendedDistanceCm)
-				.bidirectional(bidirectional != null ? bidirectional : true)
-				.build();
+		PlantCompanionEntity companion = plantCompanionMapper.fromCompanionRequest(request, plant, companionPlant);
 
 		PlantCompanionEntity saved = plantCompanionRepository.save(companion);
 
-		if (bidirectional == null || bidirectional) {
-			if (!plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionPlantId, plantId, relationshipType)) {
-				PlantCompanionEntity reverseCompanion = PlantCompanionEntity.builder()
-						.plant(companionPlant)
-						.companionPlant(plant)
-						.relationshipType(relationshipType)
-						.recommendedDistanceCm(recommendedDistanceCm)
-						.bidirectional(true)
-						.build();
-				plantCompanionRepository.save(reverseCompanion);
-				log.info("Created bidirectional companion relationship");
-			}
+		if (request.getBidirectional() == null || request.getBidirectional()) {
+			createReverseRelationshipIfNotExists(request, companionPlant, plant, relationshipType);
 		}
 
 		log.info("Companion relationship created with id: {}", saved.getId());
 		return plantCompanionMapper.toModel(saved);
+	}
+
+	private PlantEntity findByPlantIdOrThrow(Long plantId) {
+
+		return plantRepository.findById(plantId)
+				.orElseThrow(() -> new PlantNotFoundException(plantId));
+	}
+
+	private void createReverseRelationshipIfNotExists(CompanionRequest request, PlantEntity companionPlant, PlantEntity plant, RelationshipType relationshipType) {
+
+		if (!plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionPlant.getId(), plant.getId(), relationshipType)) {
+			PlantCompanionEntity reverseCompanion = plantCompanionMapper.fromCompanionRequest(request, companionPlant, plant);
+			plantCompanionRepository.save(reverseCompanion);
+			log.info("Created bidirectional companion relationship");
+		}
 	}
 
 	@Override
@@ -91,8 +85,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 	public List<PlantCompanion> getCompanionsForPlant(Long plantId) {
 
 		log.debug("Getting all companions for plant: {}", plantId);
-		PlantEntity plant = plantRepository.findById(plantId)
-				.orElseThrow(() -> new PlantNotFoundException(plantId));
+		PlantEntity plant = findByPlantIdOrThrow(plantId);
 
 		return plantCompanionRepository.findByPlant(plant)
 				.stream()
@@ -105,8 +98,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 	public List<PlantCompanion> getCompanionsByType(Long plantId, RelationshipType relationshipType) {
 
 		log.debug("Getting companions of type {} for plant: {}", relationshipType, plantId);
-		PlantEntity plant = plantRepository.findById(plantId)
-				.orElseThrow(() -> new PlantNotFoundException(plantId));
+		PlantEntity plant = findByPlantIdOrThrow(plantId);
 		return plantCompanionRepository.findByPlantAndRelationshipType(plant, relationshipType)
 				.stream()
 				.map(plantCompanionMapper::toModel)
@@ -120,7 +112,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 		PlantCompanionEntity companion = plantCompanionRepository.findById(id)
 				.orElseThrow(() -> new PlantCompanionException(id));
 
-		if (Boolean.TRUE.equals(companion.getBidirectional())) {
+		if (companion.getBidirectional()) {
 			PlantCompanionEntity reverse = plantCompanionRepository.findByPlantIdAndCompanionPlantIdAndRelationshipType(
 					companion.getCompanionPlant().getId(),
 					companion.getPlant().getId(),
@@ -146,12 +138,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 		PlantCompanionEntity companion = plantCompanionRepository.findById(plantId)
 				.orElseThrow(() -> new PlantCompanionException(plantId));
 
-		if (recommendedDistanceCm != null) {
-			companion.setRecommendedDistanceCm(recommendedDistanceCm);
-		}
-		if (bidirectional != null) {
-			companion.setBidirectional(bidirectional);
-		}
+		plantCompanionMapper.updateEntityFromRequest(updateRequest, companion);
 
 		PlantCompanionEntity updated = plantCompanionRepository.save(companion);
 		log.info("Companion relationship updated");
