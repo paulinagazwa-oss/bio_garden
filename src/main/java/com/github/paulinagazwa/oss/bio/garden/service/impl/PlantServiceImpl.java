@@ -6,6 +6,7 @@ import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanionsPage;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantService;
 import lombok.AllArgsConstructor;
@@ -28,6 +29,14 @@ public class PlantServiceImpl implements PlantService {
 		return plantRepository.findAll().stream()
 				.map(plantMapper::toModel)
 				.toList();
+	}
+
+	@Override
+	public PlantWithCompanionsPage findAllPlantsWithCompanions() {
+
+		//TODO implement pagination and filtering / use list / some mapper?
+		// use plantRepository.findAllWithCompanions()
+		return null;
 	}
 
 	@Override
@@ -61,6 +70,7 @@ public class PlantServiceImpl implements PlantService {
 	@Override
 	public void deletePlant(Long id) {
 
+		//TODO remove relationships with companions before deleting the plant
 		plantRepository.delete(
 				plantRepository.findById(id)
 						.orElseThrow(() -> new PlantNotFoundException(id))

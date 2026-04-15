@@ -470,7 +470,6 @@ class PlantCompanionServiceImplTest {
 
 		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
 		when(updateRequest.getRecommendedDistanceCm()).thenReturn(30);
-		when(updateRequest.getBidirectional()).thenReturn(null);
 
 		PlantCompanionEntity existing = PlantCompanionEntity.builder()
 				.id(id)

@@ -131,12 +131,11 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 	@Override
 	public PlantCompanion updateCompanionRelationship(Long plantId, CompanionUpdateRequest updateRequest) {
 
-		Integer recommendedDistanceCm = updateRequest.getRecommendedDistanceCm();
-		Boolean bidirectional = updateRequest.getBidirectional();
-
 		log.info("Updating companion relationship: {}", plantId);
 		PlantCompanionEntity companion = plantCompanionRepository.findById(plantId)
 				.orElseThrow(() -> new PlantCompanionException(plantId));
+		// TODO some logic needed if bidirectional is updated to false - delete reverse relationship,
+		//  if updated to true - create reverse relationship if not exists
 
 		plantCompanionMapper.updateEntityFromRequest(updateRequest, companion);
 

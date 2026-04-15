@@ -17,7 +17,9 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "plant", schema = "bio_garden")
@@ -50,12 +52,12 @@ public class PlantEntity {
 	 * Neighborhood list, where this plant is the main plant and has companions
 	 */
 	@OneToMany(mappedBy = "plant", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<PlantCompanionEntity> companions = new ArrayList<>();
+	private Set<PlantCompanionEntity> companions = new HashSet<>();
 
 	/**
 	 * Neighborhood list, where this plant is the companion plant for other main plants
 	 */
 	@OneToMany(mappedBy = "companionPlant", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<PlantCompanionEntity> companionFor = new ArrayList<>();
+	private Set<PlantCompanionEntity> companionFor = new HashSet<>();
 }
 
