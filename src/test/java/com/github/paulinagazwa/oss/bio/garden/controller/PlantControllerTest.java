@@ -1,8 +1,10 @@
 package com.github.paulinagazwa.oss.bio.garden.controller;
 
 import com.github.paulinagazwa.oss.bio.garden.model.CropType;
+import com.github.paulinagazwa.oss.bio.garden.model.PageInfo;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantPage;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantService;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,11 +13,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -45,12 +49,17 @@ class PlantControllerTest {
 	void shouldReturnAllPlants() {
 
 		List<Plant> plants = List.of(new Plant(), new Plant());
-		when(plantService.findAllPlants()).thenReturn(plants);
+		PageInfo pageInfo = new PageInfo(0, 20, 2, 1);
+		PlantPage plantPage = new PlantPage(plants, pageInfo);
 
-		List<Plant> result = plantController.getAllPlants();
+		when(plantService.findAllPlants(any(Pageable.class))).thenReturn(plantPage);
 
-		assertEquals(plants, result);
-		verify(plantService).findAllPlants();
+		PlantPage result = plantController.getAllPlants(0, 20, "name,asc");
+
+		assertNotNull(result);
+		assertEquals(plants, result.getContent());
+		assertEquals(pageInfo, result.getPage());
+		verify(plantService).findAllPlants(any(Pageable.class));
 	}
 
 	@Test
@@ -122,23 +131,17 @@ class PlantControllerTest {
 	@Test
 	void shouldReturnEmptyListWhenNoPlantsExist() {
 
-		when(plantService.findAllPlants()).thenReturn(List.of());
+		PageInfo pageInfo = new PageInfo(0, 20, 0, 0);
+		PlantPage plantPage = new PlantPage(List.of(), pageInfo);
 
-		List<Plant> result = plantController.getAllPlants();
+		when(plantService.findAllPlants(any(Pageable.class))).thenReturn(plantPage);
 
-		assertEquals(List.of(), result);
-		verify(plantService).findAllPlants();
-	}
+		PlantPage result = plantController.getAllPlants(0, 20, "name,asc");
 
-	@Test
-	void shouldReturnNullWhenAllPlantsServiceReturnsNull() {
-
-		when(plantService.findAllPlants()).thenReturn(null);
-
-		List<Plant> result = plantController.getAllPlants();
-
-		assertNull(result);
-		verify(plantService).findAllPlants();
+		assertNotNull(result);
+		assertEquals(List.of(), result.getContent());
+		assertEquals(0, result.getPage().getTotalElements());
+		verify(plantService).findAllPlants(any(Pageable.class));
 	}
 
 	@Test

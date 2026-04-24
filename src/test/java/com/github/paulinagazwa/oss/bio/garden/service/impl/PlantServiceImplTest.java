@@ -5,6 +5,7 @@ import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantPage;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,23 +50,32 @@ class PlantServiceImplTest {
 		Plant plant1 = new Plant();
 		Plant plant2 = new Plant();
 
-		when(plantRepository.findAll()).thenReturn(List.of(entity1, entity2));
+		Pageable pageable = PageRequest.of(0, 20);
+		Page<PlantEntity> page = new PageImpl<>(List.of(entity1, entity2), pageable, 2);
+
+		when(plantRepository.findAll(pageable)).thenReturn(page);
 		when(plantMapper.toModel(entity1)).thenReturn(plant1);
 		when(plantMapper.toModel(entity2)).thenReturn(plant2);
 
-		List<Plant> result = plantService.findAllPlants();
+		PlantPage result = plantService.findAllPlants(pageable);
 
-		assertThat(result).containsExactly(plant1, plant2);
+		assertThat(result.getContent()).containsExactly(plant1, plant2);
+		assertThat(result.getPage().getTotalElements()).isEqualTo(2);
+		assertThat(result.getPage().getTotalPages()).isEqualTo(1);
 	}
 
 	@Test
 	void findAllPlants_returnsEmptyList_whenNoPlantsExist() {
 
-		when(plantRepository.findAll()).thenReturn(List.of());
+		Pageable pageable = PageRequest.of(0, 20);
+		Page<PlantEntity> page = new PageImpl<>(List.of(), pageable, 0);
 
-		List<Plant> result = plantService.findAllPlants();
+		when(plantRepository.findAll(pageable)).thenReturn(page);
 
-		assertThat(result).isEmpty();
+		PlantPage result = plantService.findAllPlants(pageable);
+
+		assertThat(result.getContent()).isEmpty();
+		assertThat(result.getPage().getTotalElements()).isEqualTo(0);
 	}
 
 	@Test

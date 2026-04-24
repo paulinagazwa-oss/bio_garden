@@ -2,14 +2,15 @@ package com.github.paulinagazwa.oss.bio.garden.service;
 
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantPage;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanionsPage;
+import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 
 public interface PlantService {
 
-	List<Plant> findAllPlants();
+	PlantPage findAllPlants(Pageable pageable);
 
 	PlantWithCompanionsPage findAllPlantsWithCompanions();
 
