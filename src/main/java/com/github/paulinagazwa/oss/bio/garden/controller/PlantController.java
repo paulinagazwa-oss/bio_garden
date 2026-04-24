@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,9 +31,8 @@ public class PlantController {
 	@Autowired
 	private PlantService plantService;
 
-	// TODO: add response entities with proper status codes
 	@GetMapping()
-	public PlantPage getAllPlants(
+	public ResponseEntity<PlantPage> getAllPlants(
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int size,
 			@RequestParam(defaultValue = "name,asc") String sort) {
@@ -43,36 +44,37 @@ public class PlantController {
 			: Sort.Direction.ASC;
 
 		Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
-		return plantService.findAllPlants(pageable);
+		return ResponseEntity.ok(plantService.findAllPlants(pageable));
 	}
 
 	@GetMapping("/with-companions")
-	public PlantWithCompanionsPage getAllPlantsWithCompanions() {
+	public ResponseEntity<PlantWithCompanionsPage> getAllPlantsWithCompanions() {
 
-		return plantService.findAllPlantsWithCompanions();
+		return ResponseEntity.ok(plantService.findAllPlantsWithCompanions());
 	}
 
 	@GetMapping("/{id}")
-	public Plant getPlantById(@PathVariable Long id) {
+	public ResponseEntity<Plant> getPlantById(@PathVariable Long id) {
 
-		return plantService.findPlantById(id);
+		return ResponseEntity.ok(plantService.findPlantById(id));
 	}
 
 	@PostMapping()
-	public Plant createPlant(@Valid @RequestBody PlantCreateRequest plantCreateRequest) {
+	public ResponseEntity<Plant> createPlant(@Valid @RequestBody PlantCreateRequest plantCreateRequest) {
 
-		return plantService.createPlant(plantCreateRequest);
+		return ResponseEntity.status(HttpStatus.CREATED).body(plantService.createPlant(plantCreateRequest));
 	}
 
 	@PutMapping("/{id}")
-	public Plant updatePlant(@PathVariable Long id, @Valid @RequestBody PlantUpdateRequest plantUpdateRequest) {
+	public ResponseEntity<Plant> updatePlant(@PathVariable Long id, @Valid @RequestBody PlantUpdateRequest plantUpdateRequest) {
 
-		return plantService.updatePlant(id, plantUpdateRequest);
+		return ResponseEntity.ok(plantService.updatePlant(id, plantUpdateRequest));
 	}
 
 	@DeleteMapping("/{id}")
-	public void deletePlant(@PathVariable Long id) {
+	public ResponseEntity<Void> deletePlant(@PathVariable Long id) {
 
 		plantService.deletePlant(id);
+		return ResponseEntity.noContent().build();
 	}
 }

@@ -54,7 +54,7 @@ class PlantControllerTest {
 
 		when(plantService.findAllPlants(any(Pageable.class))).thenReturn(plantPage);
 
-		PlantPage result = plantController.getAllPlants(0, 20, "name,asc");
+		PlantPage result = plantController.getAllPlants(0, 20, "name,asc").getBody();
 
 		assertNotNull(result);
 		assertEquals(plants, result.getContent());
@@ -67,7 +67,7 @@ class PlantControllerTest {
 
 		when(plantService.findPlantById(ID)).thenReturn(plant);
 
-		Plant result = plantController.getPlantById(ID);
+		Plant result = plantController.getPlantById(ID).getBody();
 
 		assertEquals(plant, result);
 		verify(plantService).findPlantById(ID);
@@ -79,7 +79,7 @@ class PlantControllerTest {
 		PlantCreateRequest request = getPlantCreateRequest();
 		when(plantService.createPlant(request)).thenReturn(plant);
 
-		Plant result = plantController.createPlant(request);
+		Plant result = plantController.createPlant(request).getBody();
 
 		assertEquals(plant, result);
 		verify(plantService).createPlant(request);
@@ -91,7 +91,7 @@ class PlantControllerTest {
 		PlantUpdateRequest request = new PlantUpdateRequest();
 		when(plantService.updatePlant(any(), eq(request))).thenReturn(plant);
 
-		Plant result = plantController.updatePlant(1L, request);
+		Plant result = plantController.updatePlant(1L, request).getBody();
 
 		assertEquals(plant, result);
 		verify(plantService).updatePlant(1L, request);
@@ -110,7 +110,7 @@ class PlantControllerTest {
 
 		when(plantService.findPlantById(ID)).thenReturn(null);
 
-		Plant result = plantController.getPlantById(ID);
+		Plant result = plantController.getPlantById(ID).getBody();
 
 		assertNull(result);
 		verify(plantService).findPlantById(ID);
@@ -122,7 +122,7 @@ class PlantControllerTest {
 		PlantUpdateRequest request = new PlantUpdateRequest();
 		when(plantService.updatePlant(any(), eq(request))).thenReturn(null);
 
-		Plant result = plantController.updatePlant(1L, request);
+		Plant result = plantController.updatePlant(1L, request).getBody();
 
 		assertNull(result);
 		verify(plantService).updatePlant(1L, request);
@@ -136,7 +136,7 @@ class PlantControllerTest {
 
 		when(plantService.findAllPlants(any(Pageable.class))).thenReturn(plantPage);
 
-		PlantPage result = plantController.getAllPlants(0, 20, "name,asc");
+		PlantPage result = plantController.getAllPlants(0, 20, "name,asc").getBody();
 
 		assertNotNull(result);
 		assertEquals(List.of(), result.getContent());
@@ -150,7 +150,7 @@ class PlantControllerTest {
 		PlantCreateRequest request = getPlantCreateRequest();
 		when(plantService.createPlant(request)).thenReturn(null);
 
-		Plant result = plantController.createPlant(request);
+		Plant result = plantController.createPlant(request).getBody();
 
 		assertNull(result);
 		verify(plantService).createPlant(request);
