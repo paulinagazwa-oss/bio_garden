@@ -1,5 +1,6 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
+import com.github.paulinagazwa.oss.bio.garden.entity.PlantCompanionEntity;
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
 import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
@@ -87,10 +88,21 @@ public class PlantServiceImpl implements PlantService {
 	@Override
 	public void deletePlant(Long id) {
 
-		//TODO remove relationships with companions before deleting the plant
-		plantRepository.delete(
-				plantRepository.findById(id)
-						.orElseThrow(() -> new PlantNotFoundException(id))
-		);
+		PlantEntity plant = plantRepository.findById(id)
+				.orElseThrow(() -> new PlantNotFoundException(id));
+
+		plant.getCompanions().forEach(this::clearRelation);
+		plant.getCompanions().clear();
+
+		plant.getCompanionFor().forEach(this::clearRelation);
+		plant.getCompanionFor().clear();
+
+		plantRepository.delete(plant);
+	}
+
+	private void clearRelation(PlantCompanionEntity relation) {
+
+		relation.setPlant(null);
+		relation.setCompanionPlant(null);
 	}
 }
