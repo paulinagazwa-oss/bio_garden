@@ -467,12 +467,24 @@ class PlantCompanionServiceImplTest {
 	void updateCompanionRelationship_updatesProvidedFieldsOnly() {
 
 		Long id = 1L;
+		Long plantId = 11L;
+		Long companionId = 22L;
+		RelationshipType type = RelationshipType.values()[0];
 
 		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
 		when(updateRequest.getRecommendedDistanceCm()).thenReturn(30);
 
+		PlantEntity plant = mock(PlantEntity.class);
+		when(plant.getId()).thenReturn(plantId);
+
+		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(companionPlant.getId()).thenReturn(companionId);
+
 		PlantCompanionEntity existing = PlantCompanionEntity.builder()
 				.id(id)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
 				.recommendedDistanceCm(10)
 				.bidirectional(true)
 				.build();

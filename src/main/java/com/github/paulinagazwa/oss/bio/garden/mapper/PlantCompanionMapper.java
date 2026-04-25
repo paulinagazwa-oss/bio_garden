@@ -38,9 +38,10 @@ public interface PlantCompanionMapper {
 	PlantCompanionEntity toEntity(PlantCompanion plantCompanion);
 
 	@Mapping(target = ID, ignore = true)
-	@Mapping(target = PLANT, source = PLANT)
-	@Mapping(target = COMPANION_PLANT, source = COMPANION_PLANT)
 	PlantCompanionEntity fromCompanionRequest(CompanionRequest plantCompanion, PlantEntity plant, PlantEntity companionPlant);
+
+	@Mapping(target = ID, ignore = true)
+	PlantCompanionEntity fromCompanionUpdateRequest(CompanionUpdateRequest request, PlantEntity plant, PlantEntity companionPlant);
 
 	@BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 	@Mapping(target = ID, ignore = true)

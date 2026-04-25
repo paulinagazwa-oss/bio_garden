@@ -71,10 +71,12 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 				.orElseThrow(() -> new PlantNotFoundException(plantId));
 	}
 
-	private void createReverseRelationshipIfNotExists(CompanionRequest request, PlantEntity companionPlant, PlantEntity plant, RelationshipType relationshipType) {
+	private void createReverseRelationshipIfNotExists(Object request, PlantEntity companionPlant, PlantEntity plant, RelationshipType relationshipType) {
 
 		if (!plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionPlant.getId(), plant.getId(), relationshipType)) {
-			PlantCompanionEntity reverseCompanion = plantCompanionMapper.fromCompanionRequest(request, companionPlant, plant);
+			PlantCompanionEntity reverseCompanion = (request instanceof CompanionRequest)
+					? plantCompanionMapper.fromCompanionRequest((CompanionRequest) request, companionPlant, plant)
+					: plantCompanionMapper.fromCompanionUpdateRequest((CompanionUpdateRequest) request, companionPlant, plant);
 			plantCompanionRepository.save(reverseCompanion);
 			log.info("Created bidirectional companion relationship");
 		}
@@ -134,14 +136,43 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 		log.info("Updating companion relationship: {}", plantId);
 		PlantCompanionEntity companion = plantCompanionRepository.findById(plantId)
 				.orElseThrow(() -> new PlantCompanionException(plantId));
-		// TODO some logic needed if bidirectional is updated to false - delete reverse relationship,
-		//  if updated to true - create reverse relationship if not exists
+
+		deleteReverseRelationshipIfBidirectionalDisabled(updateRequest, companion);
+
+		if (shouldCreateReverseRelationship(updateRequest, companion)) {
+			createReverseRelationshipIfNotExists(updateRequest, companion.getCompanionPlant(), companion.getPlant(), companion.getRelationshipType());
+		}
 
 		plantCompanionMapper.updateEntityFromRequest(updateRequest, companion);
 
 		PlantCompanionEntity updated = plantCompanionRepository.save(companion);
 		log.info("Companion relationship updated");
 		return plantCompanionMapper.toModel(updated);
+	}
+
+	private boolean isBidirectionalBeingDisabled(CompanionUpdateRequest updateRequest, PlantCompanionEntity companion) {
+
+		return companion.getBidirectional() && (updateRequest.getBidirectional() != null && !updateRequest.getBidirectional());
+	}
+
+	private static boolean shouldCreateReverseRelationship(CompanionUpdateRequest updateRequest, PlantCompanionEntity companion) {
+
+		return !companion.getBidirectional() && (updateRequest.getBidirectional() == null || updateRequest.getBidirectional());
+	}
+
+	private void deleteReverseRelationshipIfBidirectionalDisabled(CompanionUpdateRequest updateRequest, PlantCompanionEntity companion) {
+
+		if (isBidirectionalBeingDisabled(updateRequest, companion)) {
+			PlantCompanionEntity reverse = plantCompanionRepository.findByPlantIdAndCompanionPlantIdAndRelationshipType(
+					companion.getCompanionPlant().getId(),
+					companion.getPlant().getId(),
+					companion.getRelationshipType()
+			);
+			if (reverse != null) {
+				plantCompanionRepository.delete(reverse);
+				log.info("Deleted reverse companion relationship due to bidirectional update");
+			}
+		}
 	}
 
 	@Override
