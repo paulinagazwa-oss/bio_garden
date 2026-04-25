@@ -37,20 +37,30 @@ public class PlantController {
 			@RequestParam(defaultValue = "20") int size,
 			@RequestParam(defaultValue = "name,asc") String sort) {
 
-		String[] sortParams = sort.split(",");
-		String sortField = sortParams[0];
-		Sort.Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("desc")
-			? Sort.Direction.DESC
-			: Sort.Direction.ASC;
-
-		Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+		Pageable pageable = getPageable(page, size, sort);
 		return ResponseEntity.ok(plantService.findAllPlants(pageable));
 	}
 
-	@GetMapping("/with-companions")
-	public ResponseEntity<PlantWithCompanionsPage> getAllPlantsWithCompanions() {
+	private static Pageable getPageable(int page, int size, String sort) {
 
-		return ResponseEntity.ok(plantService.findAllPlantsWithCompanions());
+		String[] sortParams = sort.isBlank() ? new String[]{"name", "asc"} : sort.split(",");
+
+		String sortField = sortParams[0];
+		Sort.Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("desc")
+				? Sort.Direction.DESC
+				: Sort.Direction.ASC;
+
+		return PageRequest.of(page, size, Sort.by(direction, sortField));
+	}
+
+	@GetMapping("/with-companions")
+	public ResponseEntity<PlantWithCompanionsPage> getAllPlantsWithCompanions(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size,
+			@RequestParam(defaultValue = "name,asc") String sort) {
+
+		Pageable pageable = getPageable(page, size, sort);
+		return ResponseEntity.ok(plantService.findAllPlantsWithCompanions(pageable));
 	}
 
 	@GetMapping("/{id}")

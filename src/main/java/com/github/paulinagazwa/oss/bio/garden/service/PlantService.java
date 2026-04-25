@@ -12,7 +12,7 @@ public interface PlantService {
 
 	PlantPage findAllPlants(Pageable pageable);
 
-	PlantWithCompanionsPage findAllPlantsWithCompanions();
+	PlantWithCompanionsPage findAllPlantsWithCompanions(Pageable pageable);
 
 	Plant findPlantById(Long id);
 

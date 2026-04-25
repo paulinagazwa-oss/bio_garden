@@ -50,7 +50,7 @@ public class PlantServiceImpl implements PlantService {
 	}
 
 	@Override
-	public PlantWithCompanionsPage findAllPlantsWithCompanions() {
+	public PlantWithCompanionsPage findAllPlantsWithCompanions(Pageable pageable) {
 
 		//TODO implement pagination and filtering / use list / some mapper?
 		// use plantRepository.findAllWithCompanions()
