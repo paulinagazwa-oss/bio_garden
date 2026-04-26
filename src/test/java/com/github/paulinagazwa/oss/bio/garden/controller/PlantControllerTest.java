@@ -6,6 +6,7 @@ import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantPage;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanionsPage;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,8 +15,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +33,18 @@ import static org.mockito.Mockito.when;
 class PlantControllerTest {
 
 	public static final Long ID = 1L;
+
+	public static final String NAME_ASC = "name,asc";
+
+	public static final String GET_PAGEABLE = "getPageable";
+
+	public static final String NAME = "name";
+
+	public static final String NAME_DESC = "name,desc";
+
+	public static final String NAME_UP = "name,up";
+
+	public static final String CROP_DESC = "crop,desc";
 
 	@Mock
 	private PlantService plantService;
@@ -54,7 +69,7 @@ class PlantControllerTest {
 
 		when(plantService.findAllPlants(any(Pageable.class))).thenReturn(plantPage);
 
-		PlantPage result = plantController.getAllPlants(0, 20, "name,asc").getBody();
+		PlantPage result = plantController.getAllPlants(0, 20, NAME_ASC).getBody();
 
 		assertNotNull(result);
 		assertEquals(plants, result.getContent());
@@ -136,7 +151,7 @@ class PlantControllerTest {
 
 		when(plantService.findAllPlants(any(Pageable.class))).thenReturn(plantPage);
 
-		PlantPage result = plantController.getAllPlants(0, 20, "name,asc").getBody();
+		PlantPage result = plantController.getAllPlants(0, 20, NAME_ASC).getBody();
 
 		assertNotNull(result);
 		assertEquals(List.of(), result.getContent());
@@ -163,6 +178,102 @@ class PlantControllerTest {
 
 		assertDoesNotThrow(() -> plantController.deletePlant(nonExistentId));
 		verify(plantService).deletePlant(nonExistentId);
+	}
+
+	@Test
+	void shouldReturnAllPlantsWithCompanions() {
+
+		PlantWithCompanionsPage page = new PlantWithCompanionsPage();
+		when(plantService.findAllPlantsWithCompanions(any(Pageable.class))).thenReturn(page);
+
+		PlantWithCompanionsPage result = plantController.getAllPlantsWithCompanions(0, 20, NAME_ASC).getBody();
+
+		assertEquals(page, result);
+		verify(plantService).findAllPlantsWithCompanions(any(Pageable.class));
+	}
+
+	@Test
+	void shouldUseAscendingSortWhenSortIsNameAsc() throws Exception {
+
+		var method = PlantController.class.getDeclaredMethod(GET_PAGEABLE, int.class, int.class, String.class);
+		method.setAccessible(true);
+
+		Pageable pageable = (Pageable) method.invoke(plantController, 2, 50, NAME_ASC);
+
+		assertEquals(2, pageable.getPageNumber());
+		assertEquals(50, pageable.getPageSize());
+		assertNotNull(pageable.getSort().getOrderFor(NAME));
+		assertEquals(Sort.Direction.ASC, Objects.requireNonNull(pageable.getSort().getOrderFor(NAME)).getDirection());
+	}
+
+	@Test
+	void shouldUseDescendingSortWhenSortIsNameDesc() throws Exception {
+
+		var method = PlantController.class.getDeclaredMethod(GET_PAGEABLE, int.class, int.class, String.class);
+		method.setAccessible(true);
+
+		Pageable pageable = (Pageable) method.invoke(plantController, 0, 20, NAME_DESC);
+
+		assertEquals(0, pageable.getPageNumber());
+		assertEquals(20, pageable.getPageSize());
+		assertNotNull(pageable.getSort().getOrderFor(NAME));
+		assertEquals(Sort.Direction.DESC, Objects.requireNonNull(pageable.getSort().getOrderFor(NAME)).getDirection());
+	}
+
+	@Test
+	void shouldDefaultToAscendingWhenDirectionIsMissing() throws Exception {
+
+		var method = PlantController.class.getDeclaredMethod(GET_PAGEABLE, int.class, int.class, String.class);
+		method.setAccessible(true);
+
+		Pageable pageable = (Pageable) method.invoke(plantController, 1, 10, NAME);
+
+		assertEquals(1, pageable.getPageNumber());
+		assertEquals(10, pageable.getPageSize());
+		assertNotNull(pageable.getSort().getOrderFor(NAME));
+		assertEquals(Sort.Direction.ASC, Objects.requireNonNull(pageable.getSort().getOrderFor(NAME)).getDirection());
+	}
+
+	@Test
+	void shouldDefaultToAscendingWhenDirectionIsNotDesc() throws Exception {
+
+		var method = PlantController.class.getDeclaredMethod(GET_PAGEABLE, int.class, int.class, String.class);
+		method.setAccessible(true);
+
+		Pageable pageable = (Pageable) method.invoke(plantController, 1, 10, NAME_UP);
+
+		assertEquals(1, pageable.getPageNumber());
+		assertEquals(10, pageable.getPageSize());
+		assertNotNull(pageable.getSort().getOrderFor(NAME));
+		assertEquals(Sort.Direction.ASC, Objects.requireNonNull(pageable.getSort().getOrderFor(NAME)).getDirection());
+	}
+
+	@Test
+	void shouldDefaultToNameAscWhenSortIsBlank() throws Exception {
+
+		var method = PlantController.class.getDeclaredMethod(GET_PAGEABLE, int.class, int.class, String.class);
+		method.setAccessible(true);
+
+		Pageable pageable = (Pageable) method.invoke(plantController, 3, 5, "   ");
+
+		assertEquals(3, pageable.getPageNumber());
+		assertEquals(5, pageable.getPageSize());
+		assertNotNull(pageable.getSort().getOrderFor(NAME));
+		assertEquals(Sort.Direction.ASC, Objects.requireNonNull(pageable.getSort().getOrderFor(NAME)).getDirection());
+	}
+
+	@Test
+	void shouldUseProvidedSortFieldWhenSortIsOtherField() throws Exception {
+
+		var method = PlantController.class.getDeclaredMethod(GET_PAGEABLE, int.class, int.class, String.class);
+		method.setAccessible(true);
+
+		Pageable pageable = (Pageable) method.invoke(plantController, 0, 25, CROP_DESC);
+
+		assertEquals(0, pageable.getPageNumber());
+		assertEquals(25, pageable.getPageSize());
+		assertNotNull(pageable.getSort().getOrderFor("crop"));
+		assertEquals(Sort.Direction.DESC, Objects.requireNonNull(pageable.getSort().getOrderFor("crop")).getDirection());
 	}
 
 	private PlantCreateRequest getPlantCreateRequest() {

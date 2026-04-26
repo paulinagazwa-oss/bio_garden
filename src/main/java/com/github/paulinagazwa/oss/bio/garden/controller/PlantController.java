@@ -41,7 +41,7 @@ public class PlantController {
 		return ResponseEntity.ok(plantService.findAllPlants(pageable));
 	}
 
-	private static Pageable getPageable(int page, int size, String sort) {
+	private Pageable getPageable(int page, int size, String sort) {
 
 		String[] sortParams = sort.isBlank() ? new String[]{"name", "asc"} : sort.split(",");
 

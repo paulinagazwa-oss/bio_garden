@@ -86,7 +86,7 @@ class PlantCompanionServiceImplTest {
 				.bidirectional(false)
 				.build();
 
-		when(plantCompanionMapper.fromCompanionRequest(eq(request), eq(plant), eq(companionPlant))).thenReturn(savedEntity);
+		when(plantCompanionMapper.fromCompanionRequest(request, plant, companionPlant)).thenReturn(savedEntity);
 		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenAnswer(i -> i.getArgument(0));
 
 		PlantCompanion mapped = mock(PlantCompanion.class);
@@ -152,8 +152,8 @@ class PlantCompanionServiceImplTest {
 				.bidirectional(true)
 				.build();
 
-		when(plantCompanionMapper.fromCompanionRequest(eq(request), eq(plant), eq(companionPlant))).thenReturn(forwardEntity);
-		when(plantCompanionMapper.fromCompanionRequest(eq(request), eq(companionPlant), eq(plant))).thenReturn(reverseEntity);
+		when(plantCompanionMapper.fromCompanionRequest(request, plant, companionPlant)).thenReturn(forwardEntity);
+		when(plantCompanionMapper.fromCompanionRequest(request, companionPlant, plant)).thenReturn(reverseEntity);
 		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenAnswer(i -> i.getArgument(0));
 
 		PlantCompanion mapped = mock(PlantCompanion.class);
@@ -498,7 +498,7 @@ class PlantCompanionServiceImplTest {
 				entity.setRecommendedDistanceCm(req.getRecommendedDistanceCm());
 			}
 			return null;
-		}).when(plantCompanionMapper).updateEntityFromRequest(eq(updateRequest), eq(existing));
+		}).when(plantCompanionMapper).updateEntityFromRequest(updateRequest, existing);
 
 		when(plantCompanionRepository.save(existing)).thenReturn(existing);
 
@@ -548,5 +548,299 @@ class PlantCompanionServiceImplTest {
 		List<PlantCompanion> result = service.getAllRelationshipsForPlant(plantId);
 
 		assertEquals(List.of(m1, m2), result);
+	}
+
+	@Test
+	void updateCompanionRelationship_deletesReverse_whenBidirectionalIsDisabledAndReverseExists() {
+
+		Long id = 1L;
+		Long plantId = 11L;
+		Long companionId = 22L;
+		RelationshipType type = RelationshipType.GOOD;
+
+		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
+		when(updateRequest.getBidirectional()).thenReturn(false);
+
+		PlantEntity plant = mock(PlantEntity.class);
+		when(plant.getId()).thenReturn(plantId);
+
+		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(companionPlant.getId()).thenReturn(companionId);
+
+		PlantCompanionEntity existing = PlantCompanionEntity.builder()
+				.id(id)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
+				.bidirectional(true)
+				.build();
+
+		PlantCompanionEntity reverse = mock(PlantCompanionEntity.class);
+
+		when(plantCompanionRepository.findById(id)).thenReturn(Optional.of(existing));
+		when(plantCompanionRepository.findByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type))
+				.thenReturn(reverse);
+		when(plantCompanionRepository.save(existing)).thenReturn(existing);
+
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(existing)).thenReturn(mapped);
+
+		PlantCompanion result = service.updateCompanionRelationship(id, updateRequest);
+
+		assertSame(mapped, result);
+		verify(plantCompanionRepository).delete(reverse);
+		verify(plantCompanionRepository).save(existing);
+		verify(plantCompanionMapper).updateEntityFromRequest(updateRequest, existing);
+	}
+
+	@Test
+	void updateCompanionRelationship_doesNotDeleteReverse_whenBidirectionalIsDisabledButReverseDoesNotExist() {
+
+		Long id = 1L;
+		Long plantId = 11L;
+		Long companionId = 22L;
+		RelationshipType type = RelationshipType.GOOD;
+
+		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
+		when(updateRequest.getBidirectional()).thenReturn(false);
+
+		PlantEntity plant = mock(PlantEntity.class);
+		when(plant.getId()).thenReturn(plantId);
+
+		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(companionPlant.getId()).thenReturn(companionId);
+
+		PlantCompanionEntity existing = PlantCompanionEntity.builder()
+				.id(id)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
+				.bidirectional(true)
+				.build();
+
+		when(plantCompanionRepository.findById(id)).thenReturn(Optional.of(existing));
+		when(plantCompanionRepository.findByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type))
+				.thenReturn(null);
+		when(plantCompanionRepository.save(existing)).thenReturn(existing);
+
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(existing)).thenReturn(mapped);
+
+		PlantCompanion result = service.updateCompanionRelationship(id, updateRequest);
+
+		assertSame(mapped, result);
+		verify(plantCompanionRepository, never()).delete(isNull());
+		verify(plantCompanionRepository).save(existing);
+	}
+
+	@Test
+	void updateCompanionRelationship_doesNotDeleteReverse_whenExistingIsNotBidirectional() {
+
+		Long id = 1L;
+		RelationshipType type = RelationshipType.GOOD;
+
+		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
+		when(updateRequest.getBidirectional()).thenReturn(false);
+
+		PlantEntity plant = mock(PlantEntity.class);
+
+		PlantEntity companionPlant = mock(PlantEntity.class);
+
+		PlantCompanionEntity existing = PlantCompanionEntity.builder()
+				.id(id)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
+				.bidirectional(false)
+				.build();
+
+		when(plantCompanionRepository.findById(id)).thenReturn(Optional.of(existing));
+		when(plantCompanionRepository.save(existing)).thenReturn(existing);
+
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(existing)).thenReturn(mapped);
+
+		PlantCompanion result = service.updateCompanionRelationship(id, updateRequest);
+
+		assertSame(mapped, result);
+		verify(plantCompanionRepository, never())
+				.findByPlantIdAndCompanionPlantIdAndRelationshipType(anyLong(), anyLong(), any());
+		verify(plantCompanionRepository, never()).delete(any(PlantCompanionEntity.class));
+		verify(plantCompanionRepository).save(existing);
+	}
+
+	@Test
+	void updateCompanionRelationship_doesNotDeleteReverse_whenUpdateRequestDoesNotDisableBidirectional() {
+
+		Long id = 1L;
+		RelationshipType type = RelationshipType.GOOD;
+
+		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
+		when(updateRequest.getBidirectional()).thenReturn(null);
+
+		PlantEntity plant = mock(PlantEntity.class);
+
+		PlantEntity companionPlant = mock(PlantEntity.class);
+
+		PlantCompanionEntity existing = PlantCompanionEntity.builder()
+				.id(id)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
+				.bidirectional(true)
+				.build();
+
+		when(plantCompanionRepository.findById(id)).thenReturn(Optional.of(existing));
+		when(plantCompanionRepository.save(existing)).thenReturn(existing);
+
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(existing)).thenReturn(mapped);
+
+		PlantCompanion result = service.updateCompanionRelationship(id, updateRequest);
+
+		assertSame(mapped, result);
+		verify(plantCompanionRepository, never())
+				.findByPlantIdAndCompanionPlantIdAndRelationshipType(anyLong(), anyLong(), any());
+		verify(plantCompanionRepository, never()).delete(any(PlantCompanionEntity.class));
+		verify(plantCompanionRepository).save(existing);
+	}
+
+	@Test
+	void updateCompanionRelationship_createsReverseRelationship_whenBidirectionalIsEnabledAndReverseDoesNotExist() {
+
+		Long id = 1L;
+		Long plantId = 11L;
+		Long companionId = 22L;
+		RelationshipType type = RelationshipType.GOOD;
+
+		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
+		when(updateRequest.getBidirectional()).thenReturn(true);
+
+		PlantEntity plant = mock(PlantEntity.class);
+		when(plant.getId()).thenReturn(plantId);
+
+		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(companionPlant.getId()).thenReturn(companionId);
+
+		PlantCompanionEntity existing = PlantCompanionEntity.builder()
+				.id(id)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
+				.bidirectional(false)
+				.build();
+
+		PlantCompanionEntity reverseEntity = PlantCompanionEntity.builder()
+				.id(999L)
+				.plant(companionPlant)
+				.companionPlant(plant)
+				.relationshipType(type)
+				.bidirectional(true)
+				.build();
+
+		when(plantCompanionRepository.findById(id)).thenReturn(Optional.of(existing));
+		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type))
+				.thenReturn(false);
+
+		when(plantCompanionMapper.fromCompanionUpdateRequest(updateRequest, companionPlant, plant))
+				.thenReturn(reverseEntity);
+
+		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(existing)).thenReturn(mapped);
+
+		PlantCompanion result = service.updateCompanionRelationship(id, updateRequest);
+
+		assertSame(mapped, result);
+
+		verify(plantCompanionRepository).existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type);
+		verify(plantCompanionMapper).fromCompanionUpdateRequest(updateRequest, companionPlant, plant);
+		verify(plantCompanionRepository).save(reverseEntity);
+		verify(plantCompanionRepository).save(existing);
+	}
+
+	@Test
+	void updateCompanionRelationship_createsReverseRelationship_whenExistingIsNotBidirectionalAndUpdateRequestBidirectionalIsNull() {
+
+		Long id = 1L;
+		Long plantId = 11L;
+		Long companionId = 22L;
+		RelationshipType type = RelationshipType.GOOD;
+
+		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
+		when(updateRequest.getBidirectional()).thenReturn(null);
+
+		PlantEntity plant = mock(PlantEntity.class);
+		when(plant.getId()).thenReturn(plantId);
+
+		PlantEntity companionPlant = mock(PlantEntity.class);
+		when(companionPlant.getId()).thenReturn(companionId);
+
+		PlantCompanionEntity existing = PlantCompanionEntity.builder()
+				.id(id)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
+				.bidirectional(false)
+				.build();
+
+		PlantCompanionEntity reverseEntity = PlantCompanionEntity.builder()
+				.id(999L)
+				.plant(companionPlant)
+				.companionPlant(plant)
+				.relationshipType(type)
+				.bidirectional(true)
+				.build();
+
+		when(plantCompanionRepository.findById(id)).thenReturn(Optional.of(existing));
+		when(plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(companionId, plantId, type))
+				.thenReturn(false);
+		when(plantCompanionMapper.fromCompanionUpdateRequest(updateRequest, companionPlant, plant))
+				.thenReturn(reverseEntity);
+
+		when(plantCompanionRepository.save(any(PlantCompanionEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(existing)).thenReturn(mapped);
+
+		PlantCompanion result = service.updateCompanionRelationship(id, updateRequest);
+
+		assertSame(mapped, result);
+		verify(plantCompanionMapper).fromCompanionUpdateRequest(updateRequest, companionPlant, plant);
+		verify(plantCompanionRepository).save(reverseEntity);
+	}
+
+	@Test
+	void updateCompanionRelationship_doesNotCreateReverseRelationship_whenExistingIsNotBidirectionalAndUpdateDisablesBidirectional() {
+
+		Long id = 1L;
+		RelationshipType type = RelationshipType.GOOD;
+
+		CompanionUpdateRequest updateRequest = mock(CompanionUpdateRequest.class);
+		when(updateRequest.getBidirectional()).thenReturn(false);
+
+		PlantEntity plant = mock(PlantEntity.class);
+		PlantEntity companionPlant = mock(PlantEntity.class);
+
+		PlantCompanionEntity existing = PlantCompanionEntity.builder()
+				.id(id)
+				.plant(plant)
+				.companionPlant(companionPlant)
+				.relationshipType(type)
+				.bidirectional(false)
+				.build();
+
+		when(plantCompanionRepository.findById(id)).thenReturn(Optional.of(existing));
+		when(plantCompanionRepository.save(existing)).thenReturn(existing);
+
+		PlantCompanion mapped = mock(PlantCompanion.class);
+		when(plantCompanionMapper.toModel(existing)).thenReturn(mapped);
+
+		PlantCompanion result = service.updateCompanionRelationship(id, updateRequest);
+
+		assertSame(mapped, result);
+		verify(plantCompanionMapper, never()).fromCompanionUpdateRequest(any(), any(), any());
+		verify(plantCompanionRepository, never()).existsByPlantIdAndCompanionPlantIdAndRelationshipType(anyLong(), anyLong(), any());
 	}
 }

@@ -1,5 +1,6 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
+import com.github.paulinagazwa.oss.bio.garden.entity.PlantCompanionEntity;
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
 import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
@@ -7,6 +8,7 @@ import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantPage;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanionsPage;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +21,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -202,5 +206,92 @@ class PlantServiceImplTest {
 		assertThatThrownBy(() -> plantService.deletePlant(99L))
 				.isInstanceOf(PlantNotFoundException.class)
 				.hasMessageContaining("99");
+	}
+
+	@Test
+	void findAllPlantsWithCompanions_shouldReturnMappedContentAndPageInfo() {
+
+		Pageable pageable = PageRequest.of(0, 2);
+
+		var entity1 = new PlantEntity();
+		var entity2 = new PlantEntity();
+
+		var model1 = new com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanions();
+		var model2 = new com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanions();
+
+		Page<PlantEntity> page =
+				new PageImpl<>(
+						java.util.List.of(entity1, entity2),
+						pageable,
+						10
+				);
+
+		when(plantRepository.findAll(pageable)).thenReturn(page);
+		when(plantMapper.toModelWithCompanions(entity1)).thenReturn(model1);
+		when(plantMapper.toModelWithCompanions(entity2)).thenReturn(model2);
+
+		PlantWithCompanionsPage result =
+				plantService.findAllPlantsWithCompanions(pageable);
+
+		assertThat(result).isNotNull();
+		assertThat(result.getContent()).containsExactly(model1, model2);
+
+		assertThat(result.getPage()).isNotNull();
+		assertThat(result.getPage().getNumber()).isZero();
+		assertThat(result.getPage().getSize()).isEqualTo(2);
+		assertThat(result.getPage().getTotalElements()).isEqualTo(10);
+		assertThat(result.getPage().getTotalPages()).isEqualTo(5);
+
+		verify(plantRepository).findAll(pageable);
+		verify(plantMapper).toModelWithCompanions(entity1);
+		verify(plantMapper).toModelWithCompanions(entity2);
+	}
+
+	@Test
+	void findAllPlantsWithCompanions_shouldReturnEmptyContentWhenRepositoryReturnsEmptyPage() {
+
+		Pageable pageable = PageRequest.of(0, 20);
+
+		Page<PlantEntity> page =
+				new PageImpl<>(
+						java.util.List.of(),
+						pageable,
+						0
+				);
+
+		when(plantRepository.findAll(pageable)).thenReturn(page);
+
+		PlantWithCompanionsPage result =
+				plantService.findAllPlantsWithCompanions(pageable);
+
+		assertThat(result).isNotNull();
+		assertThat(result.getContent()).isEmpty();
+
+		assertThat(result.getPage()).isNotNull();
+		assertThat(result.getPage().getTotalElements()).isZero();
+		assertThat(result.getPage().getTotalPages()).isZero();
+
+		verify(plantRepository).findAll(pageable);
+		verify(plantMapper, org.mockito.Mockito.never()).toModelWithCompanions(org.mockito.ArgumentMatchers.any());
+	}
+
+	@Test
+	void deletePlant_shouldClearRelationReferencesBeforeDeletingPlant() {
+
+		var relation = new PlantCompanionEntity();
+		relation.setPlant(new PlantEntity());
+		relation.setCompanionPlant(new PlantEntity());
+
+		var entity = new PlantEntity();
+		entity.setCompanions(new HashSet<>(List.of(relation)));
+		entity.setCompanionFor(new HashSet<>());
+
+		when(plantRepository.findById(1L)).thenReturn(Optional.of(entity));
+
+		plantService.deletePlant(1L);
+
+		assertThat(relation.getPlant()).isNull();
+		assertThat(relation.getCompanionPlant()).isNull();
+		verify(plantRepository).delete(entity);
 	}
 }
