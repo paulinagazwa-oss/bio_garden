@@ -9,8 +9,5 @@ import java.util.List;
 
 public interface PlantRepository extends JpaRepository<PlantEntity, Long> {
 
-	@EntityGraph(attributePaths = {"companions", "companionFor"})
-	@Query("SELECT p FROM PlantEntity p")
-	List<PlantEntity> findAllWithCompanions();
 }
 

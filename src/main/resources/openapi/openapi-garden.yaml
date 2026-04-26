@@ -554,6 +554,10 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/PlantCompanion"
+            companionFor:
+              type: array
+              items:
+                $ref: "#/components/schemas/PlantCompanion"
 
     PlantWithCompanionsPage:
       type: object

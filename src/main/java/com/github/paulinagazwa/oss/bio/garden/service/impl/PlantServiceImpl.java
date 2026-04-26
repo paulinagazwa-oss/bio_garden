@@ -9,6 +9,7 @@ import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantPage;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanions;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanionsPage;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantService;
@@ -37,24 +38,37 @@ public class PlantServiceImpl implements PlantService {
 				.map(plantMapper::toModel)
 				.toList();
 
-		PageInfo pageInfo = new PageInfo(
-				page.getNumber(),
-				page.getSize(),
-				(int) page.getTotalElements(),
-				page.getTotalPages()
-		);
+		PageInfo pageInfo = createPageInfo(page);
 
 		return new PlantPage()
 				.content(plants)
 				.page(pageInfo);
 	}
 
+	private PageInfo createPageInfo(Page<PlantEntity> page) {
+
+		return new PageInfo(
+				page.getNumber(),
+				page.getSize(),
+				(int) page.getTotalElements(),
+				page.getTotalPages()
+		);
+	}
+
 	@Override
 	public PlantWithCompanionsPage findAllPlantsWithCompanions(Pageable pageable) {
 
-		//TODO implement pagination and filtering / use list / some mapper?
-		// use plantRepository.findAllWithCompanions()
-		return null;
+		Page<PlantEntity> page = plantRepository.findAll(pageable);
+
+		List<PlantWithCompanions> plants = page.getContent().stream()
+				.map(plantMapper::toModelWithCompanions)
+				.toList();
+
+		PageInfo pageInfo = createPageInfo(page);
+
+		return new PlantWithCompanionsPage()
+				.content(plants)
+				.page(pageInfo);
 	}
 
 	@Override
