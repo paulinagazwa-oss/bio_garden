@@ -2,53 +2,89 @@ package com.github.paulinagazwa.oss.bio.garden.controller;
 
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantPage;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanionsPage;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 
 @RestController
+@RequestMapping("/api/v1/plants")
 public class PlantController {
 
 	@Autowired
 	private PlantService plantService;
 
-	@GetMapping("/api/v1/plants")
-	public List<Plant> getAllPlants() {
+	@GetMapping()
+	public ResponseEntity<PlantPage> getAllPlants(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size,
+			@RequestParam(defaultValue = "name,asc") String sort) {
 
-		return plantService.findAllPlants();
+		Pageable pageable = getPageable(page, size, sort);
+		return ResponseEntity.ok(plantService.findAllPlants(pageable));
 	}
 
-	@GetMapping("/api/v1/plants/{id}")
-	public Plant getPlantById(@PathVariable Long id) {
+	private Pageable getPageable(int page, int size, String sort) {
 
-		return plantService.findPlantById(id);
+		String[] sortParams = sort.isBlank() ? new String[]{"name", "asc"} : sort.split(",");
+
+		String sortField = sortParams[0];
+		Sort.Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("desc")
+				? Sort.Direction.DESC
+				: Sort.Direction.ASC;
+
+		return PageRequest.of(page, size, Sort.by(direction, sortField));
 	}
 
-	@PostMapping("/api/v1/plants")
-	public Plant createPlant(@Valid @RequestBody PlantCreateRequest plantCreateRequest) {
+	@GetMapping("/with-companions")
+	public ResponseEntity<PlantWithCompanionsPage> getAllPlantsWithCompanions(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size,
+			@RequestParam(defaultValue = "name,asc") String sort) {
 
-		return plantService.createPlant(plantCreateRequest);
+		Pageable pageable = getPageable(page, size, sort);
+		return ResponseEntity.ok(plantService.findAllPlantsWithCompanions(pageable));
 	}
 
-	@PutMapping("/api/v1/plants/{id}")
-	public Plant updatePlant(@PathVariable Long id, @Valid @RequestBody PlantUpdateRequest plantUpdateRequest) {
+	@GetMapping("/{id}")
+	public ResponseEntity<Plant> getPlantById(@PathVariable Long id) {
 
-		return plantService.updatePlant(id, plantUpdateRequest);
+		return ResponseEntity.ok(plantService.findPlantById(id));
 	}
 
-	@DeleteMapping("/api/v1/plants/{id}")
-	public void deletePlant(@PathVariable Long id) {
+	@PostMapping()
+	public ResponseEntity<Plant> createPlant(@Valid @RequestBody PlantCreateRequest plantCreateRequest) {
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(plantService.createPlant(plantCreateRequest));
+	}
+
+	@PutMapping("/{id}")
+	public ResponseEntity<Plant> updatePlant(@PathVariable Long id, @Valid @RequestBody PlantUpdateRequest plantUpdateRequest) {
+
+		return ResponseEntity.ok(plantService.updatePlant(id, plantUpdateRequest));
+	}
+
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Void> deletePlant(@PathVariable Long id) {
 
 		plantService.deletePlant(id);
+		return ResponseEntity.noContent().build();
 	}
 }

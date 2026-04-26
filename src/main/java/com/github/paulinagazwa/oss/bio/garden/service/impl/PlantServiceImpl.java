@@ -1,14 +1,21 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
+import com.github.paulinagazwa.oss.bio.garden.entity.PlantCompanionEntity;
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
 import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
+import com.github.paulinagazwa.oss.bio.garden.model.PageInfo;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantCreateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantPage;
 import com.github.paulinagazwa.oss.bio.garden.model.PlantUpdateRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanions;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanionsPage;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantService;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,11 +30,45 @@ public class PlantServiceImpl implements PlantService {
 	private final PlantMapper plantMapper;
 
 	@Override
-	public List<Plant> findAllPlants() {
+	public PlantPage findAllPlants(Pageable pageable) {
 
-		return plantRepository.findAll().stream()
+		Page<PlantEntity> page = plantRepository.findAll(pageable);
+
+		List<Plant> plants = page.getContent().stream()
 				.map(plantMapper::toModel)
 				.toList();
+
+		PageInfo pageInfo = createPageInfo(page);
+
+		return new PlantPage()
+				.content(plants)
+				.page(pageInfo);
+	}
+
+	private PageInfo createPageInfo(Page<PlantEntity> page) {
+
+		return new PageInfo(
+				page.getNumber(),
+				page.getSize(),
+				(int) page.getTotalElements(),
+				page.getTotalPages()
+		);
+	}
+
+	@Override
+	public PlantWithCompanionsPage findAllPlantsWithCompanions(Pageable pageable) {
+
+		Page<PlantEntity> page = plantRepository.findAll(pageable);
+
+		List<PlantWithCompanions> plants = page.getContent().stream()
+				.map(plantMapper::toModelWithCompanions)
+				.toList();
+
+		PageInfo pageInfo = createPageInfo(page);
+
+		return new PlantWithCompanionsPage()
+				.content(plants)
+				.page(pageInfo);
 	}
 
 	@Override
@@ -61,9 +102,21 @@ public class PlantServiceImpl implements PlantService {
 	@Override
 	public void deletePlant(Long id) {
 
-		plantRepository.delete(
-				plantRepository.findById(id)
-						.orElseThrow(() -> new PlantNotFoundException(id))
-		);
+		PlantEntity plant = plantRepository.findById(id)
+				.orElseThrow(() -> new PlantNotFoundException(id));
+
+		plant.getCompanions().forEach(this::clearRelation);
+		plant.getCompanions().clear();
+
+		plant.getCompanionFor().forEach(this::clearRelation);
+		plant.getCompanionFor().clear();
+
+		plantRepository.delete(plant);
+	}
+
+	private void clearRelation(PlantCompanionEntity relation) {
+
+		relation.setPlant(null);
+		relation.setCompanionPlant(null);
 	}
 }

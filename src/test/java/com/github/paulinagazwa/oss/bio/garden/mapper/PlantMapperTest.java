@@ -1,5 +1,7 @@
 package com.github.paulinagazwa.oss.bio.garden.mapper;
 
+import com.github.paulinagazwa.oss.bio.garden.model.PlantCompanion;
+import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -7,6 +9,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -47,5 +52,50 @@ class PlantMapperTest {
 	void map_returnsNull_whenOffsetDateTimeIsNull() {
 
 		assertThat(plantMapper.map((OffsetDateTime) null)).isNull();
+	}
+
+	@Test
+	void filterCompanionForBidirectional_shouldKeepOnlyUnidirectionalRelationships() {
+
+		PlantCompanion bidirectional = new PlantCompanion();
+		bidirectional.setBidirectional(true);
+
+		PlantCompanion unidirectional = new PlantCompanion();
+		unidirectional.setBidirectional(false);
+
+		PlantCompanion nullBidirectional = new PlantCompanion();
+		nullBidirectional.setBidirectional(null);
+
+		PlantWithCompanions target = new PlantWithCompanions();
+		target.setCompanionFor(List.of(bidirectional, unidirectional, nullBidirectional));
+
+		plantMapper.filterCompanionForBidirectional(null, target);
+
+		assertThat(target.getCompanionFor()).containsExactly(unidirectional);
+	}
+
+	@Test
+	void filterCompanionForBidirectional_shouldNotFailWhenCompanionForIsNull() {
+
+		PlantWithCompanions target = new PlantWithCompanions();
+		target.setCompanionFor(null);
+
+		plantMapper.filterCompanionForBidirectional(null, target);
+
+		assertThat(target.getCompanionFor()).isNull();
+	}
+
+	@Test
+	void filterCompanionForBidirectional_shouldIgnoreNullElementsInCompanionForList() {
+
+		PlantCompanion unidirectional = new PlantCompanion();
+		unidirectional.setBidirectional(false);
+
+		PlantWithCompanions target = new PlantWithCompanions();
+		target.setCompanionFor(new ArrayList<>(Arrays.asList(null, unidirectional, null)));
+
+		plantMapper.filterCompanionForBidirectional(null, target);
+
+		assertThat(target.getCompanionFor()).containsExactly(unidirectional);
 	}
 }
