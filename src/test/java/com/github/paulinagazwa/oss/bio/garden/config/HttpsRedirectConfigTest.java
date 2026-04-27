@@ -7,8 +7,8 @@ import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.servlet.ServletWebServerFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
