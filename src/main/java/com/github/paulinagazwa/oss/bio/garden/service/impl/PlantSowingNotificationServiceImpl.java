@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,19 +34,18 @@ public class PlantSowingNotificationServiceImpl implements PlantSowingNotificati
 
 
 		if (plantsToSow.isEmpty()) {
-			plantsToSow = plantRepository.findAll();
+			return;
 		}
+
+		String plantNames = plantsToSow.stream()
+				.map(PlantEntity::getName)
+				.collect(Collectors.joining(", "));
 
 		SimpleMailMessage message = new SimpleMailMessage();
 		//TODO: get email from user settings
 		message.setTo("user@email.com");
 		message.setSubject("Time to sow!");
-
-		String messageText = "From today you can plant: " + plantsToSow.stream()
-				.map(PlantEntity::getName)
-				.reduce((a, b) -> a + ", " + b)
-				.orElse("");
-		message.setText(messageText);
+		message.setText("From today you can plant: " + plantNames);
 
 		mailSender.send(message);
 	}
