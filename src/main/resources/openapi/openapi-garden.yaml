@@ -397,6 +397,7 @@ components:
     SowPeriod:
       type: object
       properties:
+        # TODO: Maybe change to month and day only (without year) or even to enum with 12 values for months
         sowFrom:
           type: string
           format: date-time

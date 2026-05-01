@@ -4,6 +4,7 @@ import com.github.paulinagazwa.oss.bio.garden.entity.PlantCompanionEntity;
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
 import com.github.paulinagazwa.oss.bio.garden.exception.PlantCompanionException;
 import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
+import com.github.paulinagazwa.oss.bio.garden.logging.LogMessages;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantCompanionMapper;
 import com.github.paulinagazwa.oss.bio.garden.model.CompanionRequest;
 import com.github.paulinagazwa.oss.bio.garden.model.CompanionUpdateRequest;
@@ -38,7 +39,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 		Long companionPlantId = request.getCompanionPlantId();
 		RelationshipType relationshipType = request.getRelationshipType();
 
-		log.info("Creating companion relationship: plant={}, companion={}, type={}",
+		log.info(LogMessages.COMPANION_CREATE_START,
 				plantId, companionPlantId, relationshipType);
 
 		if (plantId.equals(companionPlantId)) {
@@ -61,7 +62,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 			createReverseRelationshipIfNotExists(request, companionPlant, plant, relationshipType);
 		}
 
-		log.info("Companion relationship created with id: {}", saved.getId());
+		log.info(LogMessages.COMPANION_CREATE_SUCCESS, saved.getId());
 		return plantCompanionMapper.toModel(saved);
 	}
 
@@ -78,7 +79,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 					? plantCompanionMapper.fromCompanionRequest((CompanionRequest) request, companionPlant, plant)
 					: plantCompanionMapper.fromCompanionUpdateRequest((CompanionUpdateRequest) request, companionPlant, plant);
 			plantCompanionRepository.save(reverseCompanion);
-			log.info("Created bidirectional companion relationship");
+			log.info(LogMessages.COMPANION_BIDIRECTIONAL_CREATED);
 		}
 	}
 
@@ -86,7 +87,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 	@Transactional(readOnly = true)
 	public List<PlantCompanion> getCompanionsForPlant(Long plantId) {
 
-		log.debug("Getting all companions for plant: {}", plantId);
+		log.debug(LogMessages.COMPANION_GET_ALL_FOR_PLANT, plantId);
 		PlantEntity plant = findByPlantIdOrThrow(plantId);
 
 		return plantCompanionRepository.findByPlant(plant)
@@ -99,7 +100,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 	@Transactional(readOnly = true)
 	public List<PlantCompanion> getCompanionsByType(Long plantId, RelationshipType relationshipType) {
 
-		log.debug("Getting companions of type {} for plant: {}", relationshipType, plantId);
+		log.debug(LogMessages.COMPANION_GET_BY_TYPE, relationshipType, plantId);
 		PlantEntity plant = findByPlantIdOrThrow(plantId);
 		return plantCompanionRepository.findByPlantAndRelationshipType(plant, relationshipType)
 				.stream()
@@ -110,7 +111,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 	@Override
 	public void deleteCompanionRelationship(Long id) {
 
-		log.info("Deleting companion relationship: {}", id);
+		log.info(LogMessages.COMPANION_DELETE_START, id);
 		PlantCompanionEntity companion = plantCompanionRepository.findById(id)
 				.orElseThrow(() -> new PlantCompanionException(id));
 
@@ -122,18 +123,18 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 			);
 			if (reverse != null) {
 				plantCompanionRepository.delete(reverse);
-				log.info("Deleted reverse companion relationship");
+				log.info(LogMessages.COMPANION_REVERSE_DELETE);
 			}
 		}
 
 		plantCompanionRepository.delete(companion);
-		log.info("Companion relationship deleted");
+		log.info(LogMessages.COMPANION_DELETE_SUCCESS);
 	}
 
 	@Override
 	public PlantCompanion updateCompanionRelationship(Long plantId, CompanionUpdateRequest updateRequest) {
 
-		log.info("Updating companion relationship: {}", plantId);
+		log.info(LogMessages.COMPANION_UPDATE_START, plantId);
 		PlantCompanionEntity companion = plantCompanionRepository.findById(plantId)
 				.orElseThrow(() -> new PlantCompanionException(plantId));
 
@@ -146,7 +147,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 		plantCompanionMapper.updateEntityFromRequest(updateRequest, companion);
 
 		PlantCompanionEntity updated = plantCompanionRepository.save(companion);
-		log.info("Companion relationship updated");
+		log.info(LogMessages.COMPANION_UPDATE_SUCCESS);
 		return plantCompanionMapper.toModel(updated);
 	}
 
@@ -170,7 +171,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 			);
 			if (reverse != null) {
 				plantCompanionRepository.delete(reverse);
-				log.info("Deleted reverse companion relationship due to bidirectional update");
+				log.info(LogMessages.COMPANION_REVERSE_DELETE_ON_UPDATE);
 			}
 		}
 	}
@@ -179,7 +180,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 	@Transactional(readOnly = true)
 	public List<PlantCompanion> getAllRelationshipsForPlant(Long plantId) {
 
-		log.debug("Getting all relationships for plant: {}", plantId);
+		log.debug(LogMessages.COMPANION_GET_ALL_RELATIONSHIPS, plantId);
 		return plantCompanionRepository.findByPlantIdOrCompanionPlantId(plantId, plantId)
 				.stream()
 				.map(plantCompanionMapper::toModel)

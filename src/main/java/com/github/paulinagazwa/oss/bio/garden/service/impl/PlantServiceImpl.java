@@ -3,6 +3,7 @@ package com.github.paulinagazwa.oss.bio.garden.service.impl;
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantCompanionEntity;
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
 import com.github.paulinagazwa.oss.bio.garden.exception.PlantNotFoundException;
+import com.github.paulinagazwa.oss.bio.garden.logging.LogMessages;
 import com.github.paulinagazwa.oss.bio.garden.mapper.PlantMapper;
 import com.github.paulinagazwa.oss.bio.garden.model.PageInfo;
 import com.github.paulinagazwa.oss.bio.garden.model.Plant;
@@ -14,6 +15,7 @@ import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanionsPage;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ import java.util.List;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class PlantServiceImpl implements PlantService {
 
 	private final PlantRepository plantRepository;
@@ -31,6 +34,8 @@ public class PlantServiceImpl implements PlantService {
 
 	@Override
 	public PlantPage findAllPlants(Pageable pageable) {
+
+		log.debug(LogMessages.PLANT_GET_ALL, pageable.getPageNumber(), pageable.getPageSize());
 
 		Page<PlantEntity> page = plantRepository.findAll(pageable);
 
@@ -58,6 +63,8 @@ public class PlantServiceImpl implements PlantService {
 	@Override
 	public PlantWithCompanionsPage findAllPlantsWithCompanions(Pageable pageable) {
 
+		log.debug(LogMessages.PLANT_GET_ALL_WITH_COMPANIONS, pageable.getPageNumber(), pageable.getPageSize());
+
 		Page<PlantEntity> page = plantRepository.findAll(pageable);
 
 		List<PlantWithCompanions> plants = page.getContent().stream()
@@ -74,6 +81,8 @@ public class PlantServiceImpl implements PlantService {
 	@Override
 	public Plant findPlantById(Long id) {
 
+		log.debug(LogMessages.PLANT_GET_BY_ID, id);
+
 		return plantRepository.findById(id)
 				.map(plantMapper::toModel)
 				.orElse(null);
@@ -82,13 +91,19 @@ public class PlantServiceImpl implements PlantService {
 	@Override
 	public Plant createPlant(PlantCreateRequest plantCreateRequest) {
 
+		log.info(LogMessages.PLANT_CREATE_START);
+
 		PlantEntity entity = plantMapper.fromCreateRequest(plantCreateRequest);
 		entity.setCreationDate(LocalDateTime.now());
-		return plantMapper.toModel(plantRepository.save(entity));
+		PlantEntity saved = plantRepository.save(entity);
+		log.info(LogMessages.PLANT_CREATE_SUCCESS, saved.getId());
+		return plantMapper.toModel(saved);
 	}
 
 	@Override
 	public Plant updatePlant(Long id, PlantUpdateRequest plant) {
+
+		log.info(LogMessages.PLANT_UPDATE_START, id);
 
 		PlantEntity existing = plantRepository.findById(id)
 				.orElseThrow(() -> new PlantNotFoundException(id));
@@ -96,11 +111,15 @@ public class PlantServiceImpl implements PlantService {
 		plantMapper.updateEntityFromRequest(plant, existing);
 		existing.setLastUpdateDate(LocalDateTime.now());
 
-		return plantMapper.toModel(plantRepository.save(existing));
+		PlantEntity updated = plantRepository.save(existing);
+		log.info(LogMessages.PLANT_UPDATE_SUCCESS, updated.getId());
+		return plantMapper.toModel(updated);
 	}
 
 	@Override
 	public void deletePlant(Long id) {
+
+		log.info(LogMessages.PLANT_DELETE_START, id);
 
 		PlantEntity plant = plantRepository.findById(id)
 				.orElseThrow(() -> new PlantNotFoundException(id));
@@ -112,6 +131,7 @@ public class PlantServiceImpl implements PlantService {
 		plant.getCompanionFor().clear();
 
 		plantRepository.delete(plant);
+		log.info(LogMessages.PLANT_DELETE_SUCCESS, id);
 	}
 
 	private void clearRelation(PlantCompanionEntity relation) {

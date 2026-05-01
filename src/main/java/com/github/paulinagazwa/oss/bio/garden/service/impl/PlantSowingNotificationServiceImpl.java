@@ -1,9 +1,11 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
+import com.github.paulinagazwa.oss.bio.garden.logging.LogMessages;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantSowingNotificationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,6 +17,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlantSowingNotificationServiceImpl implements PlantSowingNotificationService {
 
 	private final JavaMailSender mailSender;
@@ -26,6 +29,7 @@ public class PlantSowingNotificationServiceImpl implements PlantSowingNotificati
 	public void sendSowingNotifications() {
 
 		LocalDate today = LocalDate.now();
+		log.debug(LogMessages.SOWING_NOTIFICATION_CHECK_START, today);
 
 		List<PlantEntity> plantsToSow = plantRepository.findAll().stream()
 				.filter(p -> p.getSowFrom() != null)
@@ -34,8 +38,11 @@ public class PlantSowingNotificationServiceImpl implements PlantSowingNotificati
 
 
 		if (plantsToSow.isEmpty()) {
+			log.debug(LogMessages.SOWING_NOTIFICATION_NONE_TO_SEND, today);
 			return;
 		}
+
+		log.info(LogMessages.SOWING_NOTIFICATION_READY_COUNT, plantsToSow.size());
 
 		String plantNames = plantsToSow.stream()
 				.map(PlantEntity::getName)
@@ -48,6 +55,7 @@ public class PlantSowingNotificationServiceImpl implements PlantSowingNotificati
 		message.setText("From today you can plant: " + plantNames);
 
 		mailSender.send(message);
+		log.info(LogMessages.SOWING_NOTIFICATION_SENT, plantsToSow.size());
 	}
 
 }

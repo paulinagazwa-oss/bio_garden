@@ -8,7 +8,7 @@ All Date will be stored in postgreSQL database, and the application will be usin
 
 # Tech stack
 - Java 17
-- Spring Boot 3
+- Spring Boot 4
 - PostgreSQL
 - Liquibase
 - OpenAPI
@@ -22,6 +22,16 @@ Password for database can be set in environment variable `DB_PASSWORD` or direct
 
 # API
 see: OpenAPI: [openapi-garden.yaml](src/main/resources/openapi/openapi-garden.yaml)
+
+## Logging
+
+Log messages used in services are centralized in `src/main/java/com/github/paulinagazwa/oss/bio/garden/logging/LogMessages.java`.
+
+When adding new logs:
+- use constants from `LogMessages` instead of inline string literals,
+- use `debug` for read/diagnostic operations,
+- use `info` for successful state-changing operations,
+- use `warn` and `error` for handled problems and failures.
 
 ## SSL Keystore
 
