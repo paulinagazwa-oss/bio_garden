@@ -12,6 +12,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import java.time.LocalDate;
+import java.time.MonthDay;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,15 +40,15 @@ class PlantSowingNotificationServiceImplTest {
 
 		PlantEntity tomato = new PlantEntity();
 		tomato.setName("Tomato");
-		tomato.setSowFrom(today.atStartOfDay());
+		tomato.setSowFrom(MonthDay.from(today));
 
 		PlantEntity carrot = new PlantEntity();
 		carrot.setName("Carrot");
-		carrot.setSowFrom(today.atTime(15, 30));
+		carrot.setSowFrom(MonthDay.from(today.atTime(15, 30)));
 
 		PlantEntity cucumber = new PlantEntity();
 		cucumber.setName("Cucumber");
-		cucumber.setSowFrom(today.plusDays(1).atStartOfDay());
+		cucumber.setSowFrom(MonthDay.from(today.plusDays(1)));
 
 		when(plantRepository.findAll()).thenReturn(List.of(tomato, carrot, cucumber));
 
@@ -79,11 +80,11 @@ class PlantSowingNotificationServiceImplTest {
 
 		PlantEntity tomato = new PlantEntity();
 		tomato.setName("Tomato");
-		tomato.setSowFrom(today.minusDays(1).atStartOfDay());
+		tomato.setSowFrom(MonthDay.from(today.minusDays(1)));
 
 		PlantEntity carrot = new PlantEntity();
 		carrot.setName("Carrot");
-		carrot.setSowFrom(today.plusDays(1).atStartOfDay());
+		carrot.setSowFrom(MonthDay.from(today.plusDays(1)));
 
 		when(plantRepository.findAll()).thenReturn(List.of(tomato, carrot));
 
@@ -99,7 +100,7 @@ class PlantSowingNotificationServiceImplTest {
 
 		PlantEntity tomato = new PlantEntity();
 		tomato.setName("Tomato");
-		tomato.setSowFrom(today.atStartOfDay());
+		tomato.setSowFrom(MonthDay.from(today));
 
 		PlantEntity unnamed = new PlantEntity();
 		unnamed.setName("Pepper");

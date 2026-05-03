@@ -1,7 +1,10 @@
 package com.github.paulinagazwa.oss.bio.garden.entity;
 
+import com.github.paulinagazwa.oss.bio.garden.converter.MonthDayAttributeConverter;
 import com.github.paulinagazwa.oss.bio.garden.model.CropType;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -16,9 +19,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.time.MonthDay;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -44,9 +46,13 @@ public class PlantEntity {
 
 	private LocalDateTime lastUpdateDate;
 
-	private LocalDateTime sowFrom;
+	@Column(length = 5)
+	@Convert(converter = MonthDayAttributeConverter.class)
+	private MonthDay sowFrom;
 
-	private LocalDateTime sowTo;
+	@Column(length = 5)
+	@Convert(converter = MonthDayAttributeConverter.class)
+	private MonthDay sowTo;
 
 	/**
 	 * Neighborhood list, where this plant is the main plant and has companions

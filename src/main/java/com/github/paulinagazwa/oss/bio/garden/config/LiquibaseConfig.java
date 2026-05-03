@@ -1,6 +1,7 @@
 package com.github.paulinagazwa.oss.bio.garden.config;
 
 import liquibase.integration.spring.SpringLiquibase;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -32,4 +33,15 @@ public class LiquibaseConfig {
 		return liquibase;
 	}
 
+	@Bean
+	public static BeanFactoryPostProcessor dependsOnLiquibasePostProcessor() {
+
+		return beanFactory -> {
+			if (beanFactory.containsBeanDefinition("entityManagerFactory")
+					&& beanFactory.containsBeanDefinition("liquibase")) {
+				beanFactory.getBeanDefinition("entityManagerFactory")
+						.setDependsOn("liquibase");
+			}
+		};
+	}
 }

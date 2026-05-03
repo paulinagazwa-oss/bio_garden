@@ -358,8 +358,7 @@ components:
         - id
         - name
         - crop
-        - sowFrom
-        - sowTo
+        - sowPeriod
       properties:
         id:
           type: integer
@@ -397,13 +396,16 @@ components:
     SowPeriod:
       type: object
       properties:
-        # TODO: Maybe change to month and day only (without year) or even to enum with 12 values for months
         sowFrom:
           type: string
-          format: date-time
+          description: Month and day without year
+          pattern: '^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'
+          example: "03-15"
         sowTo:
           type: string
-          format: date-time
+          description: Month and day without year
+          pattern: '^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'
+          example: "05-10"
     PlantCreateRequest:
       type: object
       required:

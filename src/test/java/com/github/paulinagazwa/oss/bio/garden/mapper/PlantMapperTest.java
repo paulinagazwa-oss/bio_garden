@@ -5,9 +5,7 @@ import com.github.paulinagazwa.oss.bio.garden.model.PlantWithCompanions;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.MonthDay;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -19,36 +17,39 @@ class PlantMapperTest {
 	private final PlantMapper plantMapper = Mappers.getMapper(PlantMapper.class);
 
 	@Test
-	void map_convertsLocalDateTimeToOffsetDateTimeWithUtcOffset() {
+	void map_convertsMonthDayToStringInMmDdFormat() {
 
-		LocalDateTime localDateTime = LocalDateTime.of(2024, 3, 20, 8, 30);
+		MonthDay monthDay = MonthDay.of(3, 20);
 
-		OffsetDateTime result = plantMapper.map(localDateTime);
+		String result = plantMapper.map(monthDay);
 
-		assertThat(result.getOffset()).isEqualTo(ZoneOffset.UTC);
-		assertThat(result.toLocalDateTime()).isEqualTo(localDateTime);
+		assertThat(result).isEqualTo("03-20");
 	}
 
 	@Test
-	void map_returnsNull_whenLocalDateTimeIsNull() {
+	void map_returnsNull_whenMonthDayIsNull() {
 
-		assertThat(plantMapper.map((LocalDateTime) null)).isNull();
+		assertThat(plantMapper.map((MonthDay) null)).isNull();
 	}
 
 	@Test
-	void map_convertsOffsetDateTimeToLocalDateTime() {
+	void map_convertsStringInMmDdFormatToMonthDay() {
 
-		OffsetDateTime offsetDateTime = OffsetDateTime.of(2024, 3, 20, 8, 30, 0, 0, ZoneOffset.UTC);
+		MonthDay result = plantMapper.map("03-20");
 
-		LocalDateTime result = plantMapper.map(offsetDateTime);
-
-		assertThat(result).isEqualTo(LocalDateTime.of(2024, 3, 20, 8, 30));
+		assertThat(result).isEqualTo(MonthDay.of(3, 20));
 	}
 
 	@Test
-	void map_returnsNull_whenOffsetDateTimeIsNull() {
+	void map_returnsNull_whenStringIsNull() {
 
-		assertThat(plantMapper.map((OffsetDateTime) null)).isNull();
+		assertThat(plantMapper.map((String) null)).isNull();
+	}
+
+	@Test
+	void map_returnsNull_whenStringIsBlank() {
+
+		assertThat(plantMapper.map(" ")).isNull();
 	}
 
 	@Test

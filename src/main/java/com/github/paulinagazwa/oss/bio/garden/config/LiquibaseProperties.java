@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class LiquibaseProperties {
 	private boolean enabled = true;
 
-	private String changeLog = "classpath:/db/changelog/changelog.xml";
+	private String changeLog = "classpath:db/changelog/changelog.xml";
 
 	private String contexts;
 

@@ -13,8 +13,10 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
 import java.time.LocalDateTime;
+import java.time.MonthDay;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 
@@ -41,6 +43,8 @@ public interface PlantMapper {
 	String COMPANIONS = "companions";
 
 	String COMPANION_FOR = "companionFor";
+
+	DateTimeFormatter MONTH_DAY_FORMATTER = DateTimeFormatter.ofPattern("MM-dd");
 
 	@Mapping(target = PERIOD_SOW_FROM, source = SOW_FROM)
 	@Mapping(target = PERIOD_SOW_TO, source = SOW_TO)
@@ -100,5 +104,13 @@ public interface PlantMapper {
 	default LocalDateTime map(OffsetDateTime value) {
 
 		return value == null ? null : value.toLocalDateTime();
+	}
+
+	default String map(MonthDay value) {
+		return value == null ? null : value.format(MONTH_DAY_FORMATTER);
+	}
+
+	default MonthDay map(String value) {
+		return value == null || value.isBlank() ? null : MonthDay.parse("--" + value);
 	}
 }
