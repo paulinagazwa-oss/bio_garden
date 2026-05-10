@@ -23,15 +23,8 @@ public class WeatherServiceImpl implements WeatherService {
 
 	private final RestClient restClient;
 
-	// TODO location should be configurable, user should be able to set it via API or set it in profile
-	@Value("${garden.weather.latitude}")
-	private double latitude;
-
-	@Value("${garden.weather.longitude}")
-	private double longitude;
-
 	@Override
-	public Optional<WeatherResponse> getCurrentWeather() {
+	public Optional<WeatherResponse> getCurrentWeather(double latitude, double longitude) {
 
 		log.debug(LogMessages.WEATHER_GET_CURRENT_START, latitude, longitude);
 

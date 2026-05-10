@@ -6,6 +6,6 @@ import java.util.Optional;
 
 public interface WeatherService {
 
-	Optional<WeatherResponse> getCurrentWeather();
+	Optional<WeatherResponse> getCurrentWeather(double latitude, double longitude);
 
 }
