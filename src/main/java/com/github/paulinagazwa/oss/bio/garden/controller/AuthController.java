@@ -1,7 +1,10 @@
 package com.github.paulinagazwa.oss.bio.garden.controller;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.UserEntity;
-import com.github.paulinagazwa.oss.bio.garden.model.RegisterUserRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.AuthTokenResponse;
+import com.github.paulinagazwa.oss.bio.garden.model.LoginRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.RefreshTokenRequest;
+import com.github.paulinagazwa.oss.bio.garden.model.RegisterRequest;
 import com.github.paulinagazwa.oss.bio.garden.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,27 +16,39 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
-// TODO versioning?
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final UserService userService;
 
-	// TODO openApi
     @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<String> register(@Valid @RequestBody RegisterUserRequest request) {
+    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
 
         UserEntity user = userService.register(
-                request.email(),
-                request.username(),
-                request.password(),
-                request.latitude(),
-                request.longitude()
+                request.getEmail(),
+                request.getLogin(),
+                request.getPassword(),
+                request.getLatitude(),
+                request.getLongitude()
         );
 
-        return ResponseEntity.ok("User created with id: " + user.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "User created with login: " + user.getUsername()));
     }
+
+	@PostMapping("/login")
+	public ResponseEntity<AuthTokenResponse> login(@Valid @RequestBody LoginRequest request) {
+
+		return ResponseEntity.ok(new AuthTokenResponse("dummy-token", 3600));
+	}
+
+	@PostMapping("/refresh")
+	public ResponseEntity<AuthTokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+
+		// TODO: JWT refresh
+		throw new UnsupportedOperationException("Not yet implemented");
+	}
 }

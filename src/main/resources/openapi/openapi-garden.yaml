@@ -476,6 +476,7 @@ components:
       type: object
       required:
         - login
+        - email
         - password
         - latitude
         - longitude
@@ -484,14 +485,18 @@ components:
           $ref: "#/components/schemas/Login"
         password:
           $ref: "#/components/schemas/Password"
+        email:
+          type: string
+          format: email
+          example: "mail@dot.com"
         latitude:
           type: number
-          format: float
+          format: double
           minimum: -90
           maximum: 90
         longitude:
           type: number
-          format: float
+          format: double
           minimum: -180
           maximum: 180
     Login:
