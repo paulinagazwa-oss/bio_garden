@@ -36,8 +36,10 @@ public class UserEntity {
 	@Column(name = "password_hash", nullable = false, length = 255)
 	private String passwordHash;
 
+	@Column(columnDefinition = "NUMERIC")
 	private Double latitude;
 
+	@Column(columnDefinition = "NUMERIC")
 	private Double longitude;
 
 	private Boolean enabled;
