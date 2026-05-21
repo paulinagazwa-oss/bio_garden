@@ -1,8 +1,9 @@
 package com.github.paulinagazwa.oss.bio.garden.service;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.UserEntity;
+import com.github.paulinagazwa.oss.bio.garden.model.RegisterRequest;
 
 public interface UserService {
 
-	UserEntity register(String email, String username, String rawPassword, Double latitude, Double longitude);
+	UserEntity register(RegisterRequest request);
 }

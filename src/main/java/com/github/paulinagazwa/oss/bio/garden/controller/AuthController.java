@@ -29,13 +29,7 @@ public class AuthController {
 	@PostMapping("/register")
 	public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
 
-		UserEntity user = userService.register(
-				request.getEmail(),
-				request.getLogin(),
-				request.getPassword(),
-				request.getLatitude(),
-				request.getLongitude()
-		);
+		UserEntity user = userService.register(request);
 
 		return ResponseEntity.status(HttpStatus.CREATED)
 				.body(Map.of("message", "User created with login: " + user.getUsername()));
@@ -54,4 +48,6 @@ public class AuthController {
 		AuthTokenResponse response = authService.refresh(request.getRefreshToken());
 		return ResponseEntity.ok(response);
 	}
+	
+	// TODO excetion handler for invalid login, registration and refresh token
 }

@@ -6,8 +6,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,6 +41,8 @@ public class UserEntity {
 	private Double longitude;
 
 	private Boolean enabled;
+
+	private Boolean notificationsEnabled;
 
 	private LocalDateTime creationDate;
 

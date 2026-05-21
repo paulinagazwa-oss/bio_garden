@@ -2,6 +2,7 @@ package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.UserEntity;
 import com.github.paulinagazwa.oss.bio.garden.exception.UserException;
+import com.github.paulinagazwa.oss.bio.garden.model.RegisterRequest;
 import com.github.paulinagazwa.oss.bio.garden.repository.UserRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -15,21 +16,21 @@ import java.time.LocalDateTime;
 public class UserServiceImpl implements UserService {
 
 	private final UserRepository userRepository;
-
 	private final PasswordEncoder passwordEncoder;
 
 	@Override
-	public UserEntity register(String email, String username, String rawPassword, Double latitude, Double longitude) {
+	public UserEntity register(RegisterRequest request) {
 
-		validateData(email, username);
+		validateData(request.getEmail(), request.getLogin());
 
 		UserEntity user = new UserEntity();
-		user.setEmail(email);
-		user.setUsername(username);
-		user.setPasswordHash(passwordEncoder.encode(rawPassword));
-		user.setLatitude(latitude);
-		user.setLongitude(longitude);
+		user.setEmail(request.getEmail());
+		user.setUsername(request.getLogin());
+		user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+		user.setLatitude(request.getLatitude());
+		user.setLongitude(request.getLongitude());
 		user.setEnabled(true);
+		user.setNotificationsEnabled(request.getNotificationsEnabled() != null ? request.getNotificationsEnabled() : true);
 		user.setCreationDate(LocalDateTime.now());
 		user.setLastUpdateDate(LocalDateTime.now());
 
