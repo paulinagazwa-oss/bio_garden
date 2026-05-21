@@ -1,6 +1,7 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.UserEntity;
+import com.github.paulinagazwa.oss.bio.garden.exception.UserException;
 import com.github.paulinagazwa.oss.bio.garden.repository.UserRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -38,16 +39,15 @@ public class UserServiceImpl implements UserService {
 	private void validateData(String email, String username) {
 
 		if ((email == null || email.isBlank()) && (username == null || username.isBlank())) {
-			// TODO add own exception class
-			throw new IllegalArgumentException("Email or username must be provided");
+			throw UserException.loginRequired();
 		}
 
 		if (email != null && !email.isBlank() && userRepository.existsByEmailIgnoreCase(email)) {
-			throw new IllegalArgumentException("Email already exists");
+			throw UserException.alreadyExists("Email");
 		}
 
 		if (username != null && !username.isBlank() && userRepository.existsByUsernameIgnoreCase(username)) {
-			throw new IllegalArgumentException("Username already exists");
+			throw UserException.alreadyExists("Username");
 		}
 	}
 }

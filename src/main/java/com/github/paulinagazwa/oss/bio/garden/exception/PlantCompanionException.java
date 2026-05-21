@@ -1,17 +1,25 @@
 package com.github.paulinagazwa.oss.bio.garden.exception;
 
-public class PlantCompanionException extends IllegalArgumentException {
+public class PlantCompanionException extends RuntimeException {
 
-	public PlantCompanionException() {
-		super("Invalid companion relationship: Plant cannot be its own companion");
+	private PlantCompanionException(String message) {
+
+		super(message);
 	}
 
-	public PlantCompanionException(Long id) {
-		super ("Companion relationship not found with id: " + id);
+	public static PlantCompanionException selfCompanion() {
+
+		return new PlantCompanionException("Invalid companion relationship: Plant cannot be its own companion");
 	}
 
-	public PlantCompanionException(Long plantId, Long companionPlantId) {
-		super ("Companion relationship already exists between plants " + plantId + " and " + companionPlantId);
+	public static PlantCompanionException notFound(Long id) {
+
+		return new PlantCompanionException("Companion relationship not found with id: " + id);
+	}
+
+	public static PlantCompanionException alreadyExists(Long plantId, Long companionPlantId) {
+
+		return new PlantCompanionException("Companion relationship already exists between plants " + plantId + " and " + companionPlantId);
 	}
 
 }
