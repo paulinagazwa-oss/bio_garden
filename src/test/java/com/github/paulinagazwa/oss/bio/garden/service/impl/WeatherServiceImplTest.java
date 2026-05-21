@@ -10,7 +10,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.util.UriBuilder;
 
+import java.net.URI;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -18,12 +20,17 @@ import static com.github.paulinagazwa.oss.bio.garden.service.impl.WeatherService
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)
 class WeatherServiceImplTest {
+
+	double latitude;
+
+	double longitude;
 
 	@Mock
 	private RestClient restClient;
@@ -50,7 +57,7 @@ class WeatherServiceImplTest {
 		when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
 		when(responseSpec.body(WeatherResponse.class)).thenReturn(expectedResponse);
 
-		Optional<WeatherResponse> result = weatherService.getCurrentWeather();
+		Optional<WeatherResponse> result = weatherService.getCurrentWeather(latitude, longitude);
 
 		assertThat(result).isPresent().contains(expectedResponse);
 	}
@@ -64,7 +71,7 @@ class WeatherServiceImplTest {
 		when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
 		when(responseSpec.body(WeatherResponse.class)).thenReturn(null);
 
-		Optional<WeatherResponse> result = weatherService.getCurrentWeather();
+		Optional<WeatherResponse> result = weatherService.getCurrentWeather(latitude, longitude);
 
 		assertThat(result).isEmpty();
 	}
@@ -78,7 +85,7 @@ class WeatherServiceImplTest {
 		when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
 		when(responseSpec.body(WeatherResponse.class)).thenThrow(new RestClientException("connection refused"));
 
-		assertThatThrownBy(() -> weatherService.getCurrentWeather())
+		assertThatThrownBy(() -> weatherService.getCurrentWeather(latitude, longitude))
 				.isInstanceOf(WeatherServiceException.class)
 				.hasMessageContaining("Failed to connect to weather service");
 	}
@@ -94,7 +101,7 @@ class WeatherServiceImplTest {
 		when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
 		when(responseSpec.body(WeatherResponse.class)).thenThrow(cause);
 
-		assertThatThrownBy(() -> weatherService.getCurrentWeather())
+		assertThatThrownBy(() -> weatherService.getCurrentWeather(latitude, longitude))
 				.isInstanceOf(WeatherServiceException.class)
 				.hasCause(cause);
 	}
@@ -110,7 +117,7 @@ class WeatherServiceImplTest {
 		when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
 		when(responseSpec.body(WeatherResponse.class)).thenThrow(clientError);
 
-		assertThatThrownBy(() -> weatherService.getCurrentWeather())
+		assertThatThrownBy(() -> weatherService.getCurrentWeather(latitude, longitude))
 				.isInstanceOf(WeatherServiceException.class)
 				.hasMessageContaining("Weather service client error");
 	}
@@ -118,30 +125,30 @@ class WeatherServiceImplTest {
 	@Test
 	void getCurrentWeather_buildsUriWithLatitudeLongitudeAndCurrentParameters() {
 
-		org.springframework.web.util.UriBuilder uriBuilder = org.mockito.Mockito.mock(org.springframework.web.util.UriBuilder.class);
-		java.net.URI expectedUri = java.net.URI.create("https://example.com?latitude=1.23&longitude=4.56&current=" + WEATHER_PROPERTY);
+		double latitude = 1.23d;
+		double longitude = 4.56d;
 
-		org.springframework.test.util.ReflectionTestUtils.setField(weatherService, "latitude", 1.23d);
-		org.springframework.test.util.ReflectionTestUtils.setField(weatherService, "longitude", 4.56d);
+		UriBuilder uriBuilder = mock(UriBuilder.class);
+		URI expectedUri = URI.create("https://example.com?latitude=1.23&longitude=4.56&current=" + WEATHER_PROPERTY);
 
 		when(restClient.get()).thenReturn(requestHeadersUriSpec);
 		when(requestHeadersUriSpec.uri(any(Function.class))).thenAnswer(invocation -> {
-			Function<org.springframework.web.util.UriBuilder, java.net.URI> uriFunction = invocation.getArgument(0);
+			Function<UriBuilder, URI> uriFunction = invocation.getArgument(0);
 			uriFunction.apply(uriBuilder);
 			return requestHeadersUriSpec;
 		});
-		when(uriBuilder.queryParam("latitude", 1.23d)).thenReturn(uriBuilder);
-		when(uriBuilder.queryParam("longitude", 4.56d)).thenReturn(uriBuilder);
+		when(uriBuilder.queryParam("latitude", latitude)).thenReturn(uriBuilder);
+		when(uriBuilder.queryParam("longitude", longitude)).thenReturn(uriBuilder);
 		when(uriBuilder.queryParam("current", WEATHER_PROPERTY)).thenReturn(uriBuilder);
 		when(uriBuilder.build()).thenReturn(expectedUri);
 		when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
 		when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
 		when(responseSpec.body(WeatherResponse.class)).thenReturn(null);
 
-		weatherService.getCurrentWeather();
+		weatherService.getCurrentWeather(latitude, longitude);
 
-		verify(uriBuilder).queryParam("latitude", 1.23d);
-		verify(uriBuilder).queryParam("longitude", 4.56d);
+		verify(uriBuilder).queryParam("latitude", latitude);
+		verify(uriBuilder).queryParam("longitude", longitude);
 		verify(uriBuilder).queryParam("current", WEATHER_PROPERTY);
 		verify(uriBuilder).build();
 	}
