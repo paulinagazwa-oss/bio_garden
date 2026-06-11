@@ -1,7 +1,9 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
+import com.github.paulinagazwa.oss.bio.garden.entity.UserEntity;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
+import com.github.paulinagazwa.oss.bio.garden.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -16,19 +18,26 @@ import java.time.MonthDay;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PlantSowingNotificationServiceImplTest {
 
+	private static final String USER_EMAIL = "user@example.com";
+	private static final String USER_EMAIL_2 = "user2@example.com";
+
 	@Mock
 	private JavaMailSender mailSender;
 
 	@Mock
 	private PlantRepository plantRepository;
+
+	@Mock
+	private UserRepository userRepository;
 
 	@InjectMocks
 	private PlantSowingNotificationServiceImpl service;
@@ -51,6 +60,7 @@ class PlantSowingNotificationServiceImplTest {
 		cucumber.setSowFrom(MonthDay.from(today.plusDays(1)));
 
 		when(plantRepository.findAll()).thenReturn(List.of(tomato, carrot, cucumber));
+		when(userRepository.findByNotificationsEnabledTrue()).thenReturn(List.of(createUser(USER_EMAIL)));
 
 		service.sendSowingNotifications();
 
@@ -58,9 +68,28 @@ class PlantSowingNotificationServiceImplTest {
 		verify(mailSender).send(captor.capture());
 
 		SimpleMailMessage message = captor.getValue();
-		assertThat(message.getTo()).containsExactly("user@email.com");
+		assertThat(message.getTo()).containsExactly(USER_EMAIL);
 		assertThat(message.getSubject()).isEqualTo("Time to sow!");
 		assertThat(message.getText()).isEqualTo("From today you can plant: Tomato, Carrot");
+	}
+
+	@Test
+	void sendSowingNotifications_sendsEmailToAllUsersWithNotificationsEnabled() {
+
+		LocalDate today = LocalDate.now();
+
+		PlantEntity tomato = new PlantEntity();
+		tomato.setName("Tomato");
+		tomato.setSowFrom(MonthDay.from(today));
+
+		when(plantRepository.findAll()).thenReturn(List.of(tomato));
+		when(userRepository.findByNotificationsEnabledTrue()).thenReturn(
+				List.of(createUser(USER_EMAIL), createUser(USER_EMAIL_2))
+		);
+
+		service.sendSowingNotifications();
+
+		verify(mailSender, times(2)).send(any(SimpleMailMessage.class));
 	}
 
 	@Test
@@ -70,7 +99,7 @@ class PlantSowingNotificationServiceImplTest {
 
 		service.sendSowingNotifications();
 
-		verify(mailSender, org.mockito.Mockito.never()).send(any(SimpleMailMessage.class));
+		verify(mailSender, never()).send(any(SimpleMailMessage.class));
 	}
 
 	@Test
@@ -90,7 +119,7 @@ class PlantSowingNotificationServiceImplTest {
 
 		service.sendSowingNotifications();
 
-		verify(mailSender, org.mockito.Mockito.never()).send(any(SimpleMailMessage.class));
+		verify(mailSender, never()).send(any(SimpleMailMessage.class));
 	}
 
 	@Test
@@ -102,19 +131,44 @@ class PlantSowingNotificationServiceImplTest {
 		tomato.setName("Tomato");
 		tomato.setSowFrom(MonthDay.from(today));
 
-		PlantEntity unnamed = new PlantEntity();
-		unnamed.setName("Pepper");
-		unnamed.setSowFrom(null);
+		PlantEntity pepper = new PlantEntity();
+		pepper.setName("Pepper");
+		pepper.setSowFrom(null);
 
-		when(plantRepository.findAll()).thenReturn(List.of(tomato, unnamed));
+		when(plantRepository.findAll()).thenReturn(List.of(tomato, pepper));
+		when(userRepository.findByNotificationsEnabledTrue()).thenReturn(List.of(createUser(USER_EMAIL)));
 
 		service.sendSowingNotifications();
 
 		ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
 		verify(mailSender).send(captor.capture());
 
-		SimpleMailMessage message = captor.getValue();
-		assertThat(message.getText()).isEqualTo("From today you can plant: Tomato");
+		assertThat(captor.getValue().getText()).isEqualTo("From today you can plant: Tomato");
 	}
 
+	@Test
+	void sendSowingNotifications_skipsUsersWithoutEmail() {
+
+		LocalDate today = LocalDate.now();
+
+		PlantEntity tomato = new PlantEntity();
+		tomato.setName("Tomato");
+		tomato.setSowFrom(MonthDay.from(today));
+
+		UserEntity userWithoutEmail = new UserEntity();
+		userWithoutEmail.setEmail(null);
+
+		when(plantRepository.findAll()).thenReturn(List.of(tomato));
+		when(userRepository.findByNotificationsEnabledTrue()).thenReturn(List.of(userWithoutEmail));
+
+		service.sendSowingNotifications();
+
+		verify(mailSender, never()).send(any(SimpleMailMessage.class));
+	}
+
+	private UserEntity createUser(String email) {
+		UserEntity user = new UserEntity();
+		user.setEmail(email);
+		return user;
+	}
 }

@@ -43,7 +43,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 				plantId, companionPlantId, relationshipType);
 
 		if (plantId.equals(companionPlantId)) {
-			throw new PlantCompanionException();
+			throw PlantCompanionException.selfCompanion();
 		}
 
 		PlantEntity plant = findByPlantIdOrThrow(plantId);
@@ -51,7 +51,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 		PlantEntity companionPlant = findByPlantIdOrThrow(companionPlantId);
 
 		if (plantCompanionRepository.existsByPlantIdAndCompanionPlantIdAndRelationshipType(plantId, companionPlantId, relationshipType)) {
-			throw new PlantCompanionException(plantId, companionPlantId);
+			throw PlantCompanionException.alreadyExists(plantId, companionPlantId);
 		}
 
 		PlantCompanionEntity companion = plantCompanionMapper.fromCompanionRequest(request, plant, companionPlant);
@@ -113,7 +113,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 
 		log.info(LogMessages.COMPANION_DELETE_START, id);
 		PlantCompanionEntity companion = plantCompanionRepository.findById(id)
-				.orElseThrow(() -> new PlantCompanionException(id));
+				.orElseThrow(() -> PlantCompanionException.notFound(id));
 
 		if (companion.getBidirectional()) {
 			PlantCompanionEntity reverse = plantCompanionRepository.findByPlantIdAndCompanionPlantIdAndRelationshipType(
@@ -136,7 +136,7 @@ public class PlantCompanionServiceImpl implements PlantCompanionService {
 
 		log.info(LogMessages.COMPANION_UPDATE_START, plantId);
 		PlantCompanionEntity companion = plantCompanionRepository.findById(plantId)
-				.orElseThrow(() -> new PlantCompanionException(plantId));
+				.orElseThrow(() -> PlantCompanionException.notFound(plantId));
 
 		deleteReverseRelationshipIfBidirectionalDisabled(updateRequest, companion);
 

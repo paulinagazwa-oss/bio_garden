@@ -98,4 +98,25 @@ public class LogMessages {
 	public static final String SOWING_NOTIFICATION_SENT =
 			"Sowing notification sent for {} plants";
 
+	public static final String JWT_AUTHENTICATION_FAILED =
+			"JWT authentication failed for request {}: {}";
+
+	public static final String JWT_VALIDATION_FAILED =
+			"JWT token validation failed: {}";
+
+	public static final String AUTH_LOGIN_START =
+			"Login attempt for: {}";
+
+	public static final String AUTH_LOGIN_SUCCESS =
+			"Login successful for: {}";
+
+	public static final String AUTH_REFRESH_START =
+			"Token refresh attempt for user: {}";
+
+	public static final String AUTH_REFRESH_SUCCESS =
+			"Token refreshed successfully for user: {}";
+
+	public static final String AUTH_REFRESH_INVALID_TOKEN =
+			"Token refresh failed - invalid or expired refresh token for user: {}";
+
 }

@@ -1,8 +1,10 @@
 package com.github.paulinagazwa.oss.bio.garden.service.impl;
 
 import com.github.paulinagazwa.oss.bio.garden.entity.PlantEntity;
+import com.github.paulinagazwa.oss.bio.garden.entity.UserEntity;
 import com.github.paulinagazwa.oss.bio.garden.logging.LogMessages;
 import com.github.paulinagazwa.oss.bio.garden.repository.PlantRepository;
+import com.github.paulinagazwa.oss.bio.garden.repository.UserRepository;
 import com.github.paulinagazwa.oss.bio.garden.service.PlantSowingNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,8 @@ public class PlantSowingNotificationServiceImpl implements PlantSowingNotificati
 	private final JavaMailSender mailSender;
 
 	private final PlantRepository plantRepository;
+
+	private final UserRepository userRepository;
 
 	@Override
 	@Scheduled(cron = "${garden.notification.sowing.cron:0 0 8 * * ?}")
@@ -48,13 +52,18 @@ public class PlantSowingNotificationServiceImpl implements PlantSowingNotificati
 				.map(PlantEntity::getName)
 				.collect(Collectors.joining(", "));
 
-		SimpleMailMessage message = new SimpleMailMessage();
-		//TODO: get email from user settings
-		message.setTo("user@email.com");
-		message.setSubject("Time to sow!");
-		message.setText("From today you can plant: " + plantNames);
+		List<UserEntity> recipients = userRepository.findByNotificationsEnabledTrue();
 
-		mailSender.send(message);
+		recipients.stream()
+				.filter(user -> user.getEmail() != null)
+				.forEach(user -> {
+					SimpleMailMessage message = new SimpleMailMessage();
+					message.setTo(user.getEmail());
+					message.setSubject("Time to sow!");
+					message.setText("From today you can plant: " + plantNames);
+					mailSender.send(message);
+				});
+
 		log.info(LogMessages.SOWING_NOTIFICATION_SENT, plantsToSow.size());
 	}
 

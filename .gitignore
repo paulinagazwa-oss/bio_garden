@@ -58,5 +58,8 @@ build/
 ### VS Code ###
 .vscode/
 
+### kdiff ##
+*.orig
+
 ### Keys ###
 keystore.p12
